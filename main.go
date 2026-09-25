@@ -18,6 +18,7 @@ func main() {
 	density := flag.Float64("density", 0.3, "initial fraction of live cells")
 	out := flag.String("o", "out.png", "output file")
 	rule := flag.String("rule", "B3/S23", "rule in B/S notation")
+	wrap := flag.Bool("wrap", true, "toroidal edges; -wrap=false makes cells beyond the edge dead")
 	delay := flag.Int("delay", 5, "GIF frame delay in 1/100 s")
 	palette := flag.String("palette", "age", "colour palette: age or bw")
 	flag.Parse()
@@ -34,7 +35,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	g := NewGrid(*w, *h)
+	g := NewGrid(*w, *h, *wrap)
 	g.Randomize(*seed, *density)
 
 	if strings.EqualFold(filepath.Ext(*out), ".gif") {

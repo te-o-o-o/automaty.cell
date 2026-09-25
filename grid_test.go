@@ -6,7 +6,7 @@ import "testing"
 func TestGliderMoves(t *testing.T) {
 	glider := [][2]int{{1, 0}, {2, 1}, {0, 2}, {1, 2}, {2, 2}}
 
-	g := NewGrid(10, 10)
+	g := NewGrid(10, 10, true)
 	for _, p := range glider {
 		g.Set(p[0], p[1], true)
 	}
@@ -14,7 +14,7 @@ func TestGliderMoves(t *testing.T) {
 		g = g.Step(Life)
 	}
 
-	want := NewGrid(10, 10)
+	want := NewGrid(10, 10, true)
 	for _, p := range glider {
 		want.Set(p[0]+1, p[1]+1, true)
 	}
@@ -28,7 +28,7 @@ func TestGliderMoves(t *testing.T) {
 
 // A block never changes, so its cells age by one each generation.
 func TestBlockAges(t *testing.T) {
-	g := NewGrid(6, 6)
+	g := NewGrid(6, 6, true)
 	for _, p := range [][2]int{{2, 2}, {3, 2}, {2, 3}, {3, 3}} {
 		g.Set(p[0], p[1], true)
 	}

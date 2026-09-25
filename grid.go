@@ -21,13 +21,14 @@ var Life = Rule{
 
 type Grid struct {
 	W, H int
+	Wrap bool // true: toroidal edges, false: cells beyond the edge are dead
 	// Age is row-major, len W*H: 0 = dead, n = alive for n generations
 	// (saturates at 255).
 	Age []uint8
 }
 
-func NewGrid(w, h int) *Grid {
-	return &Grid{W: w, H: h, Age: make([]uint8, w*h)}
+func NewGrid(w, h int, wrap bool) *Grid {
+	return &Grid{W: w, H: h, Wrap: wrap, Age: make([]uint8, w*h)}
 }
 
 func (g *Grid) Alive(x, y int) bool { return g.Age[y*g.W+x] > 0 }
@@ -52,7 +53,7 @@ func (g *Grid) Randomize(seed int64, density float64) {
 	}
 }
 
-// neighbours counts live cells around (x, y), wrapping around the edges.
+// neighbours counts live cells around (x, y).
 func (g *Grid) neighbours(x, y int) int {
 	n := 0
 	for dy := -1; dy <= 1; dy++ {
@@ -60,8 +61,12 @@ func (g *Grid) neighbours(x, y int) int {
 			if dx == 0 && dy == 0 {
 				continue
 			}
-			nx := (x + dx + g.W) % g.W
-			ny := (y + dy + g.H) % g.H
+			nx, ny := x+dx, y+dy
+			if g.Wrap {
+				nx, ny = (nx+g.W)%g.W, (ny+g.H)%g.H
+			} else if nx < 0 || ny < 0 || nx >= g.W || ny >= g.H {
+				continue
+			}
 			if g.Alive(nx, ny) {
 				n++
 			}
@@ -72,7 +77,7 @@ func (g *Grid) neighbours(x, y int) int {
 
 // Step returns the next generation under rule r.
 func (g *Grid) Step(r Rule) *Grid {
-	next := NewGrid(g.W, g.H)
+	next := NewGrid(g.W, g.H, g.Wrap)
 	for y := 0; y < g.H; y++ {
 		for x := 0; x < g.W; x++ {
 			n, i := g.neighbours(x, y), y*g.W+x
