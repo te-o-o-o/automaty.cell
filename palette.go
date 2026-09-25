@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -28,6 +29,31 @@ var gradients = map[string]gradient{
 	"viridis": {color.RGBA{10, 10, 10, 255}, []color.RGBA{
 		{253, 231, 37, 255}, {94, 201, 98, 255}, {33, 145, 140, 255}, {59, 82, 139, 255}, {68, 1, 84, 255}}},
 	"mono": {black, []color.RGBA{{255, 255, 255, 255}, {60, 60, 60, 255}}},
+	"neon": {color.RGBA{13, 7, 20, 255}, []color.RGBA{
+		{255, 255, 255, 255}, {62, 243, 255, 255}, {255, 62, 165, 255}, {106, 27, 154, 255}}},
+	"sunset": {color.RGBA{18, 8, 24, 255}, []color.RGBA{
+		{255, 243, 176, 255}, {255, 179, 71, 255}, {255, 94, 98, 255}, {142, 45, 226, 255}, {43, 16, 85, 255}}},
+	"toxic": {color.RGBA{5, 10, 5, 255}, []color.RGBA{
+		{244, 255, 138, 255}, {157, 255, 62, 255}, {47, 191, 113, 255}, {11, 93, 59, 255}}},
+	"aurora": {color.RGBA{6, 8, 22, 255}, []color.RGBA{
+		{234, 255, 208, 255}, {125, 255, 178, 255}, {45, 226, 230, 255}, {123, 92, 255, 255}, {59, 29, 110, 255}}},
+	"candy": {color.RGBA{26, 11, 22, 255}, []color.RGBA{
+		{255, 240, 246, 255}, {255, 154, 213, 255}, {179, 136, 255, 255}, {122, 215, 255, 255}}},
+	"rainbow": {black, []color.RGBA{
+		{255, 59, 59, 255}, {255, 177, 59, 255}, {246, 255, 59, 255}, {59, 255, 107, 255},
+		{59, 216, 255, 255}, {123, 59, 255, 255}, {255, 59, 216, 255}}},
+	"gold": {color.RGBA{14, 10, 4, 255}, []color.RGBA{
+		{255, 248, 220, 255}, {255, 215, 0, 255}, {192, 138, 0, 255}, {92, 61, 0, 255}}},
+}
+
+// paletteNames lists the gradients by name, sorted.
+func paletteNames() []string {
+	var names []string
+	for name := range gradients {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // at returns the colour at position t in [0, 1] along the stops.

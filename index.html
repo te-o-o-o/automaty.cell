@@ -184,8 +184,7 @@
     <legend>Couleurs</legend>
     <label class="wide">Palette
       <select name="palette">
-        <option>age</option><option>bw</option><option>fire</option>
-        <option>ocean</option><option>viridis</option><option>mono</option>
+        {{range .Palettes}}<option{{if eq . "age"}} selected{{end}}>{{.}}</option>{{end}}
       </select>
     </label>
     <label class="check wide"><input type="checkbox" id="custom"> Dégradé personnalisé</label>
@@ -237,7 +236,7 @@ function options() {
     } else if (el.type === 'color') {
       opts.push([el.name, el.value.slice(1), false]);
     } else {
-      const def = el.tagName === 'SELECT' ? el.options[0].value : el.defaultValue;
+      const def = el.tagName === 'SELECT' ? ([...el.options].find(o => o.defaultSelected) ?? el.options[0]).value : el.defaultValue;
       opts.push([el.name, el.value, el.value === def]);
     }
   }

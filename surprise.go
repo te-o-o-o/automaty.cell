@@ -6,16 +6,20 @@ import (
 	"strings"
 )
 
-var paletteNames = []string{"age", "fire", "ocean", "viridis", "mono"}
-
 // surprise returns random creative settings (rule, palette, seed, symmetry…)
 // on top of base, retrying until the automaton looks interesting. Grid size,
 // scale, generations and format are kept from base.
 func surprise(rng *rand.Rand, base options) options {
+	var colourful []string // every gradient but black and white
+	for _, name := range paletteNames() {
+		if name != "bw" {
+			colourful = append(colourful, name)
+		}
+	}
 	for try := 0; try < 300; try++ {
 		o := base
 		o.seed = rng.Int63n(1_000_000)
-		o.palette = paletteNames[rng.Intn(len(paletteNames))]
+		o.palette = colourful[rng.Intn(len(colourful))]
 		o.palFrom, o.palTo = "", ""
 		o.symmetry = []int{1, 1, 2, 4, 8}[rng.Intn(5)]
 		if o.symmetry == 8 && o.w != o.h {

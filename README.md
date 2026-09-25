@@ -115,7 +115,7 @@ avec des limites pour rester utilisable en ligne : grille de 400×400 au plus,
 | `-symmetry` | `1` | Départ en miroir : `1` (aucun), `2`, `4` ou `8` (grille carrée) |
 | `-density` | `0.3` | Proportion initiale de cellules vivantes (ignorée en cyclique : états uniformes) |
 | `-wrap` | `true` | Bords toriques ; `-wrap=false` pour des bords morts |
-| `-palette` | `age` | Dégradé : `age`, `bw`, `fire`, `ocean`, `viridis`, `mono` |
+| `-palette` | `age` | Dégradé : `age`, `aurora`, `bw`, `candy`, `fire`, `gold`, `mono`, `neon`, `ocean`, `rainbow`, `sunset`, `toxic`, `viridis` |
 | `-palette-from`, `-palette-to` | | Dégradé personnalisé entre deux couleurs `RRGGBB` (remplace `-palette`) |
 | `-cyclic` | `false` | Automate cyclique au lieu de `-rule` |
 | `-states` | `14` | Cyclique : nombre d'états (2-256) |

@@ -52,7 +52,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.IntVar(&o.threshold, "threshold", 3, "cyclic: neighbours in the next state needed to advance")
 	fs.StringVar(&o.neighborhood, "neighborhood", "moore", "cyclic: moore or vonneumann")
 	fs.IntVar(&o.radius, "radius", 1, "cyclic: neighbourhood radius")
-	fs.StringVar(&o.palette, "palette", "age", "colour gradient: age, bw, fire, ocean, viridis or mono")
+	fs.StringVar(&o.palette, "palette", "age", "colour gradient: "+strings.Join(paletteNames(), ", "))
 	fs.StringVar(&o.palFrom, "palette-from", "", "custom gradient start colour, RRGGBB (with -palette-to)")
 	fs.StringVar(&o.palTo, "palette-to", "", "custom gradient end colour, RRGGBB (with -palette-from)")
 	fs.StringVar(&o.serve, "serve", "", "serve the web page on this address (e.g. :8080) instead of writing a file")
@@ -128,7 +128,7 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 
 	gr, ok := gradients[o.palette]
 	if !ok {
-		return nil, nil, nil, fmt.Errorf("unknown palette %q (want age, bw, fire, ocean, viridis or mono)", o.palette)
+		return nil, nil, nil, fmt.Errorf("unknown palette %q (want one of %s)", o.palette, strings.Join(paletteNames(), ", "))
 	}
 	if o.palFrom != "" || o.palTo != "" {
 		from, err1 := parseHex(o.palFrom)

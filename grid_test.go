@@ -194,6 +194,14 @@ func TestPalette(t *testing.T) {
 			t.Errorf("state %d: %v, want %v", i, p[i], want[i])
 		}
 	}
+	// Every named gradient gives dead cells its background and live ones
+	// a different colour.
+	for name, gr := range gradients {
+		p := gr.palette(256, true, func(s int) float64 { return float64(s-1) / 254 })
+		if p[0] != gr.bg || p[1] == gr.bg {
+			t.Errorf("%s: dead %v, first live %v", name, p[0], p[1])
+		}
+	}
 	for _, bad := range []string{"", "fff", "gg0000", "1234567"} {
 		if _, err := parseHex(bad); err == nil {
 			t.Errorf("parseHex(%q): want error", bad)

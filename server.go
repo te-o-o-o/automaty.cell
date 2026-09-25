@@ -37,7 +37,7 @@ func serve(addr string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		err := indexTmpl.Execute(w, map[string]any{
-			"Presets": Presets, "MaxSide": maxSide, "MaxScale": maxScale, "MaxGens": maxGens,
+			"Presets": Presets, "Palettes": paletteNames(), "MaxSide": maxSide, "MaxScale": maxScale, "MaxGens": maxGens,
 		})
 		if err != nil {
 			log.Print(err)
