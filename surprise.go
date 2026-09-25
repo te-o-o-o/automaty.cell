@@ -33,18 +33,34 @@ var cyclicLively = []struct {
 		13: {2, 3}, 14: {2, 3}, 15: {2, 3}}},
 }
 
-// livelyKeys lists every lively cyclic setting as "neighborhood,radius,states,threshold",
-// for the web page's warning.
-func livelyKeys() []string {
-	var keys []string
+// livelySettings flattens cyclicLively, in a fixed order (so a seed always
+// gives the same pick): random picks each setting with the same odds.
+var livelySettings = func() (all []Cyclic) {
 	for _, e := range cyclicLively {
 		for states := 3; states <= 16; states++ {
 			for _, t := range e.thresholds[states] {
-				keys = append(keys, fmt.Sprintf("%s,%d,%d,%d", e.neighborhood, e.radius, states, t))
+				all = append(all, Cyclic{States: states, Threshold: t, Radius: e.radius, VonNeumann: e.neighborhood == "vonneumann"})
 			}
 		}
 	}
+	return all
+}()
+
+// livelyKeys lists the lively settings as "neighborhood,radius,states,threshold",
+// for the web page's warning.
+func livelyKeys() []string {
+	var keys []string
+	for _, c := range livelySettings {
+		keys = append(keys, fmt.Sprintf("%s,%d,%d,%d", neighborhoodName(c.VonNeumann), c.Radius, c.States, c.Threshold))
+	}
 	return keys
+}
+
+func neighborhoodName(vonNeumann bool) string {
+	if vonNeumann {
+		return "vonneumann"
+	}
+	return "moore"
 }
 
 // surprise returns random settings on top of base, retrying until the
@@ -84,16 +100,9 @@ func surprise(rng *rand.Rand, base options) options {
 		o.density = 0.05 + float64(rng.Intn(66))/100
 		switch {
 		case family < 0.25:
-			e := cyclicLively[rng.Intn(len(cyclicLively))]
-			var states []int // in order, so a seed always gives the same pick
-			for s := 3; s <= 16; s++ {
-				if len(e.thresholds[s]) > 0 {
-					states = append(states, s)
-				}
-			}
-			o.cyclic, o.neighborhood, o.radius = true, e.neighborhood, e.radius
-			o.states = states[rng.Intn(len(states))]
-			o.threshold = e.thresholds[o.states][rng.Intn(len(e.thresholds[o.states]))]
+			c := livelySettings[rng.Intn(len(livelySettings))]
+			o.cyclic, o.neighborhood = true, neighborhoodName(c.VonNeumann)
+			o.states, o.threshold, o.radius = c.States, c.Threshold, c.Radius
 		case family < 0.45:
 			o.rule = Presets[rng.Intn(len(Presets))].Rule
 		case family < 0.65:
