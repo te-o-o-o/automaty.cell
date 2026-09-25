@@ -144,26 +144,79 @@ func TestCyclic(t *testing.T) {
 	}
 }
 
-// A mirrored start stays symmetric as it evolves, with any rule.
-func TestMirror(t *testing.T) {
+// A symmetric start (mirrors and rotations) stays symmetric as it evolves,
+// with any rule.
+func TestSymmetry(t *testing.T) {
 	const n = 20
-	for _, sym := range []int{2, 4, 8} {
+	for mode, wantSame := range map[string][]func(x, y int) (int, int){
+		"2":  {func(x, y int) (int, int) { return n - 1 - x, y }},
+		"4":  {func(x, y int) (int, int) { return n - 1 - x, y }, func(x, y int) (int, int) { return x, n - 1 - y }},
+		"8":  {func(x, y int) (int, int) { return n - 1 - x, y }, func(x, y int) (int, int) { return y, x }},
+		"r2": {func(x, y int) (int, int) { return n - 1 - x, n - 1 - y }},
+		"r4": {func(x, y int) (int, int) { return n - 1 - y, x }},
+	} {
 		for _, rule := range []string{"B3/S23", "2/23/8"} {
 			r, _ := ParseRule(rule)
 			g := NewGrid(n, n, true)
 			g.Randomize(1, 0.4)
-			g.Mirror(sym)
+			g.Symmetrize(mode)
 			for i := 0; i < 30; i++ {
 				g = g.Step(r)
 			}
-			at := func(x, y int) uint8 { return g.Cells[y*n+x] }
 			for y := 0; y < n; y++ {
 				for x := 0; x < n; x++ {
-					v := at(x, y)
-					if v != at(n-1-x, y) || sym >= 4 && v != at(x, n-1-y) || sym == 8 && v != at(y, x) {
-						t.Fatalf("symmetry %d, rule %s: (%d,%d) breaks symmetry", sym, rule, x, y)
+					for _, same := range wantSame {
+						if sx, sy := same(x, y); g.Cells[y*n+x] != g.Cells[sy*n+sx] {
+							t.Fatalf("symmetry %s, rule %s: (%d,%d) differs from (%d,%d)", mode, rule, x, y, sx, sy)
+						}
 					}
 				}
+			}
+		}
+	}
+	// r2 alone is not a mirror: a half turn keeps an asymmetric pattern.
+	g := NewGrid(n, n, true)
+	g.Randomize(1, 0.4)
+	g.Symmetrize("r2")
+	mirrored := true
+	for y := 0; y < n; y++ {
+		for x := 0; x < n; x++ {
+			mirrored = mirrored && g.Cells[y*n+x] == g.Cells[y*n+n-1-x]
+		}
+	}
+	if mirrored {
+		t.Error("r2 gave a left/right mirror")
+	}
+}
+
+// Starting from a full grid, each shape keeps exactly its area: probe a few
+// cells inside and outside (60×40, so the centre is (29.5, 19.5), r = 20).
+func TestShapes(t *testing.T) {
+	const w, h = 60, 40
+	for _, tc := range []struct {
+		shape      string
+		live, dead [][2]int
+	}{
+		{"all", [][2]int{{0, 0}, {30, 20}}, nil},
+		{"disc", [][2]int{{30, 20}}, [][2]int{{0, 0}, {30, 5}}},
+		{"ring", [][2]int{{30 + 13, 20}}, [][2]int{{30, 20}, {0, 0}}},
+		{"cross", [][2]int{{30, 20}, {30, 0}, {0, 20}}, [][2]int{{0, 0}, {10, 5}}},
+		{"frame", [][2]int{{0, 0}, {59, 39}, {30, 1}}, [][2]int{{30, 20}}},
+		{"stripes", [][2]int{{0, 5}, {16, 5}}, [][2]int{{8, 5}, {59, 5}}},
+	} {
+		g := NewGrid(w, h, true)
+		for i := range g.Cells {
+			g.Cells[i] = 1
+		}
+		g.KeepShape(tc.shape)
+		for _, p := range tc.live {
+			if g.Cells[p[1]*w+p[0]] == 0 {
+				t.Errorf("%s: (%d,%d) dead, want live", tc.shape, p[0], p[1])
+			}
+		}
+		for _, p := range tc.dead {
+			if g.Cells[p[1]*w+p[0]] != 0 {
+				t.Errorf("%s: (%d,%d) live, want dead", tc.shape, p[0], p[1])
 			}
 		}
 	}

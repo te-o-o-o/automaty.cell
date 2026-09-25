@@ -115,7 +115,7 @@
   [hidden] { display: none !important; }
 
   /* Symmetry as four "power-up" buttons: radios under their labels. */
-  .powers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .powers { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
   .powers label { position: relative; display: block; }
   .powers input { position: absolute; opacity: 0; }
   .powers span {
@@ -299,11 +299,23 @@
     <div class="wide"><span id="symmetry-label" style="display:block; margin-bottom:3px; color:var(--muted); font-size:var(--small)">{{.T.symmetry}}</span>
       <div class="powers" role="radiogroup" aria-labelledby="symmetry-label">
         <label><input type="radio" name="symmetry" value="1" checked><span>×1</span></label>
-        <label><input type="radio" name="symmetry" value="2"><span>×2</span></label>
-        <label><input type="radio" name="symmetry" value="4"><span>×4</span></label>
-        <label title="{{.T.squareOnly}}"><input type="radio" name="symmetry" value="8"><span>×8</span></label>
+        <label title="{{.T.mirror}}"><input type="radio" name="symmetry" value="2"><span>×2</span></label>
+        <label title="{{.T.mirror}}"><input type="radio" name="symmetry" value="4"><span>×4</span></label>
+        <label title="{{.T.mirror}}, {{.T.squareOnly}}"><input type="radio" name="symmetry" value="8"><span>×8</span></label>
+        <label title="{{.T.halfTurn}}"><input type="radio" name="symmetry" value="r2"><span>R2</span></label>
+        <label title="{{.T.quarterTurns}}, {{.T.squareOnly}}"><input type="radio" name="symmetry" value="r4"><span>R4</span></label>
       </div>
     </div>
+    <label class="wide">{{.T.shape}}
+      <select name="shape">
+        <option value="all">{{.T.shapeAll}}</option>
+        <option value="disc">{{.T.shapeDisc}}</option>
+        <option value="ring">{{.T.shapeRing}}</option>
+        <option value="cross">{{.T.shapeCross}}</option>
+        <option value="frame">{{.T.shapeFrame}}</option>
+        <option value="stripes">{{.T.shapeStripes}}</option>
+      </select>
+    </label>
     <label class="wide" data-mode="rule">{{.T.density}} : <output id="density-out">0.3</output>
       <input name="density" type="range" min="0" max="1" step="0.01" value="0.3">
     </label>
@@ -319,6 +331,7 @@
     </label>
     <label>{{.T.generations}} <input name="gens" type="number" min="1" max="{{.MaxGens}}" value="100"></label>
     <label data-format="gif">{{.T.delay}} <input name="delay" type="number" min="0" value="5"></label>
+    <label class="check wide" data-format="gif"><input name="pingpong" type="checkbox"> {{.T.pingpong}}</label>
   </fieldset>
 
   <fieldset>

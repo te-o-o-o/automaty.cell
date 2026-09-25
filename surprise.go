@@ -66,8 +66,8 @@ func neighborhoodName(vonNeumann bool) string {
 // surprise returns random settings on top of base, retrying until the
 // automaton looks interesting. It varies the family (a lively cyclic setting,
 // a preset, a mutated preset or a random rule), density, colours (a palette
-// or a random gradient), seed, symmetry, and the animation (a GIF):
-// generations, speed and edges. The grid size and cell size stay those of
+// or a random gradient), seed, symmetry, start shape, and the animation (a
+// GIF): generations, speed, edges and ping-pong. The grid size and cell size stay those of
 // base; generations are cut if needed to stay within the web page's limits.
 func surprise(rng *rand.Rand, base options) options {
 	var colourful []string // every gradient but black and white
@@ -87,10 +87,15 @@ func surprise(rng *rand.Rand, base options) options {
 		if rng.Float64() < 0.35 {
 			o.colors = randomColors(rng)
 		}
-		o.symmetry = []int{1, 1, 2, 4, 8}[rng.Intn(5)]
-		if o.symmetry == 8 && o.w != o.h {
-			o.symmetry = 4
+		o.symmetry = []string{"1", "1", "2", "4", "8", "r2", "r4"}[rng.Intn(7)]
+		if (o.symmetry == "8" || o.symmetry == "r4") && o.w != o.h {
+			o.symmetry = "r2"
 		}
+		o.shape = "all"
+		if rng.Intn(3) == 0 {
+			o.shape = shapes[1+rng.Intn(len(shapes)-1)]
+		}
+		o.pingpong = rng.Intn(3) == 0
 		o.gif = true
 		o.gens = 60 + rng.Intn(91)
 		o.delay = []int{3, 5, 8, 12}[rng.Intn(4)]

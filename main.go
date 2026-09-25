@@ -13,6 +13,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -21,7 +22,8 @@ import (
 type options struct {
 	w, h, scale, gens         int
 	seed                      int64
-	symmetry                  int
+	symmetry, shape           string
+	pingpong                  bool
 	density                   float64
 	rule                      string
 	wrap                      bool
@@ -43,12 +45,14 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.IntVar(&o.gens, "gens", 100, "number of generations to run")
 	fs.Int64Var(&o.seed, "seed", 1, "random seed")
 	fs.Float64Var(&o.density, "density", 0.3, "initial fraction of live cells")
-	fs.IntVar(&o.symmetry, "symmetry", 1, "mirror the random start: 1 (none), 2, 4 or 8 (8 needs a square grid)")
+	fs.StringVar(&o.symmetry, "symmetry", "1", "symmetric start: 1 (none), mirrors 2, 4 or 8, rotations r2 or r4 (8 and r4 need a square grid)")
+	fs.StringVar(&o.shape, "shape", "all", "start area, dead outside: "+strings.Join(shapes, ", "))
 	fs.StringVar(&o.out, "o", "out.png", "output file")
 	fs.StringVar(&o.rule, "rule", "B3/S23", "rule in B/S (B3/S23) or Generations S/B/C (345/2/4) notation, or a preset name (see -list-rules)")
 	fs.BoolVar(&o.listRules, "list-rules", false, "list preset rules and exit")
 	fs.BoolVar(&o.wrap, "wrap", true, "toroidal edges; -wrap=false makes cells beyond the edge dead")
 	fs.IntVar(&o.delay, "delay", 5, "GIF frame delay in 1/100 s")
+	fs.BoolVar(&o.pingpong, "pingpong", false, "GIF: play forward then backward, a loop without a jump")
 	fs.BoolVar(&o.cyclic, "cyclic", false, "run a cyclic cellular automaton instead of -rule")
 	fs.IntVar(&o.states, "states", 14, "cyclic: number of states (2-256)")
 	fs.IntVar(&o.threshold, "threshold", 1, "cyclic: neighbours in the next state needed to advance")
@@ -100,6 +104,11 @@ func (o *options) generate(w io.Writer) error {
 			g = step(g)
 			frames = append(frames, Render(g, o.scale, pal))
 		}
+		if o.pingpong { // the same frames again, backward, without repeating the ends
+			for i := len(frames) - 2; i > 0; i-- {
+				frames = append(frames, frames[i])
+			}
+		}
 		anim := &gif.GIF{Image: frames, Delay: make([]int, len(frames))}
 		for i := range anim.Delay {
 			anim.Delay[i] = o.delay // 1/100 s per frame
@@ -119,10 +128,12 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 		return nil, nil, nil, errors.New("want w, h, scale and gens >= 1")
 	}
 	switch {
-	case o.symmetry != 1 && o.symmetry != 2 && o.symmetry != 4 && o.symmetry != 8:
-		return nil, nil, nil, fmt.Errorf("symmetry %d: want 1, 2, 4 or 8", o.symmetry)
-	case o.symmetry == 8 && o.w != o.h:
-		return nil, nil, nil, errors.New("symmetry 8 needs a square grid (w = h)")
+	case symmetries[o.symmetry] == nil && o.symmetry != "1":
+		return nil, nil, nil, fmt.Errorf("symmetry %q: want 1, 2, 4, 8, r2 or r4", o.symmetry)
+	case (o.symmetry == "8" || o.symmetry == "r4") && o.w != o.h:
+		return nil, nil, nil, fmt.Errorf("symmetry %s needs a square grid (w = h)", o.symmetry)
+	case !slices.Contains(shapes, o.shape):
+		return nil, nil, nil, fmt.Errorf("shape %q: want one of %s", o.shape, strings.Join(shapes, ", "))
 	}
 	rule := o.rule
 	for _, p := range Presets {
@@ -185,7 +196,8 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 		}
 	}
 
-	g.Mirror(o.symmetry)
+	g.KeepShape(o.shape)
+	g.Symmetrize(o.symmetry)
 	return g, step, pal, nil
 }
 

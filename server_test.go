@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image/gif"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -84,14 +85,14 @@ func TestCheckLimits(t *testing.T) {
 }
 
 // Surprises must be interesting GIFs that keep the grid and cell size, use
-// symmetry 8 only on square grids, and stay within the web page's limits.
+// symmetry 8 or r4 only on square grids, and stay within the web page's limits.
 func TestSurprise(t *testing.T) {
 	var base options
 	newFlagSet(&base).Parse([]string{"-w=120", "-h=80"})
 	rng := rand.New(rand.NewSource(1))
 	for i := 0; i < 10; i++ {
 		o := surprise(rng, base)
-		if !interesting(o) || !o.gif || o.w != 120 || o.h != 80 || o.symmetry == 8 || checkLimits(&o) != nil {
+		if !interesting(o) || !o.gif || o.w != 120 || o.h != 80 || o.symmetry == "8" || o.symmetry == "r4" || checkLimits(&o) != nil {
 			t.Fatalf("surprise %d: %+v, limits: %v", i, o, checkLimits(&o))
 		}
 	}
@@ -161,5 +162,21 @@ func TestSurpriseHelpers(t *testing.T) {
 				t.Errorf("randomColors: %v", colors)
 			}
 		}
+	}
+}
+
+// Ping-pong plays the frames forward then backward without repeating the
+// ends: 5 generations give 5 + 3 frames.
+func TestPingPong(t *testing.T) {
+	var o options
+	newFlagSet(&o).Parse([]string{"-w=10", "-h=10", "-gens=5", "-pingpong"})
+	o.gif = true
+	var buf bytes.Buffer
+	if err := o.generate(&buf); err != nil {
+		t.Fatal(err)
+	}
+	g, err := gif.DecodeAll(&buf)
+	if err != nil || len(g.Image) != 8 {
+		t.Fatalf("frames: %d, %v", len(g.Image), err)
 	}
 }

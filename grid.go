@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -80,23 +81,79 @@ func (g *Grid) RandomizeStates(seed int64, n int) {
 	}
 }
 
-// Mirror makes the grid symmetric by copying one part onto the others:
-// n = 2 mirrors left/right, 4 also top/bottom, 8 also across the diagonal
-// (square grids only). Rules are symmetric, so the pattern stays symmetric.
-func (g *Grid) Mirror(n int) {
-	for y := 0; y < g.H; y++ {
-		for x := 0; x < g.W; x++ {
-			sx, sy := x, y // the source cell, which keeps its own value
-			if n >= 2 {
-				sx = min(x, g.W-1-x)
-			}
-			if n >= 4 {
-				sy = min(y, g.H-1-y)
-			}
-			if n >= 8 {
-				sx, sy = min(sx, sy), max(sx, sy)
+// symmetries maps each -symmetry mode to the transforms of a w×h grid whose
+// cells share one value: mirrors (2: left/right, 4: also top/bottom, 8: also
+// the diagonals) and rotations (r2: half turn, r4: quarter turns). 8 and r4
+// need a square grid. Rules treat every direction alike, so a symmetric start
+// stays symmetric.
+var symmetries = map[string][]func(x, y, w, h int) (int, int){
+	"1": nil,
+	"2": {flipX},
+	"4": {flipX, flipY, turn2},
+	"8": {flipX, flipY, turn2,
+		func(x, y, w, h int) (int, int) { return y, x },
+		func(x, y, w, h int) (int, int) { return w - 1 - y, x },
+		func(x, y, w, h int) (int, int) { return y, h - 1 - x },
+		func(x, y, w, h int) (int, int) { return w - 1 - y, h - 1 - x }},
+	"r2": {turn2},
+	"r4": {turn2,
+		func(x, y, w, h int) (int, int) { return w - 1 - y, x },
+		func(x, y, w, h int) (int, int) { return y, h - 1 - x }},
+}
+
+func flipX(x, y, w, h int) (int, int) { return w - 1 - x, y }
+func flipY(x, y, w, h int) (int, int) { return x, h - 1 - y }
+func turn2(x, y, w, h int) (int, int) { return w - 1 - x, h - 1 - y }
+
+// Symmetrize makes the grid symmetric under a -symmetry mode: every cell takes
+// the value of the first cell of its group (the smallest x, then y), which
+// keeps its own value, so the copy can be done in place.
+func (g *Grid) Symmetrize(mode string) {
+	for x := 0; x < g.W; x++ {
+		for y := 0; y < g.H; y++ {
+			sx, sy := x, y
+			for _, t := range symmetries[mode] {
+				tx, ty := t(x, y, g.W, g.H)
+				if tx < sx || tx == sx && ty < sy {
+					sx, sy = tx, ty
+				}
 			}
 			g.Cells[y*g.W+x] = g.Cells[sy*g.W+sx]
+		}
+	}
+}
+
+// shapes are the -shape start areas: outside it, cells start dead (state 0).
+var shapes = []string{"all", "disc", "ring", "cross", "frame", "stripes"}
+
+// KeepShape kills the cells outside shape, measured from the grid's centre
+// in units of half its smaller side.
+func (g *Grid) KeepShape(shape string) {
+	r := float64(min(g.W, g.H)) / 2
+	cx, cy := float64(g.W-1)/2, float64(g.H-1)/2
+	border := max(1, min(g.W, g.H)/10)
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			dx, dy := math.Abs(float64(x)-cx)/r, math.Abs(float64(y)-cy)/r
+			d := math.Hypot(dx, dy)
+			var keep bool
+			switch shape {
+			case "disc":
+				keep = d <= 0.4
+			case "ring":
+				keep = d >= 0.55 && d <= 0.75
+			case "cross":
+				keep = dx <= 0.12 || dy <= 0.12
+			case "frame":
+				keep = x < border || y < border || x >= g.W-border || y >= g.H-border
+			case "stripes":
+				keep = x*8/g.W%2 == 0
+			default: // all
+				keep = true
+			}
+			if !keep {
+				g.Cells[y*g.W+x] = 0
+			}
 		}
 	}
 }

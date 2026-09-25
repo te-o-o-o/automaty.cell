@@ -70,6 +70,16 @@ en miroir, et comme les règles sont symétriques, le motif le reste :
 ./automaty.cell -rule starwars -symmetry 8 -gens 120 -seed 9 -palette viridis -o papillon.png
 ```
 
+Rotations (moulin à vent), formes de départ, et boucle aller-retour pour le
+mapping vidéo (avec les bords toriques par défaut, les images se raccordent
+aussi sans couture en mosaïque) :
+
+```
+./automaty.cell -rule belzhab -symmetry r4 -seed 5 -gens 150 -palette cyber -o moulin.png
+./automaty.cell -rule belzhab -shape ring -seed 5 -gens 90 -palette candy -o anneau.png
+./automaty.cell -cyclic -shape disc -gens 120 -pingpong -o boucle.gif
+```
+
 Dégradé personnalisé :
 
 ```
@@ -117,7 +127,8 @@ au pire), GIF de 80 millions de pixels (environ 80 Mo), 2 rendus à la fois.
 | `-scale` | `2` | Pixels par cellule |
 | `-gens` | `100` | Nombre de générations, l'état initial compris |
 | `-seed` | `1` | Graine aléatoire : même graine, même résultat |
-| `-symmetry` | `1` | Départ en miroir : `1` (aucun), `2`, `4` ou `8` (grille carrée) |
+| `-symmetry` | `1` | Départ symétrique : `1` (aucun), miroirs `2`, `4`, `8`, rotations `r2` (demi-tour), `r4` (quarts de tour) ; `8` et `r4` demandent une grille carrée |
+| `-shape` | `all` | Zone de départ, morte ailleurs : `all`, `disc`, `ring`, `cross`, `frame`, `stripes` |
 | `-density` | `0.3` | Proportion initiale de cellules vivantes (ignorée en cyclique : états uniformes) |
 | `-wrap` | `true` | Bords toriques ; `-wrap=false` pour des bords morts |
 | `-palette` | `age` | Dégradé (`-h` les liste toutes) : `age`, `aurora`, `berry`, `bw`, `candy`, `cherry`, `cyber`, `dusk`, `fire`, `forest`, `gold`, `lagoon`, `lavender`, `lime`, `mint`, `mono`, `neon`, `ocean`, `peach`, `rainbow`, `sunset`, `toxic`, `viridis` |
@@ -128,6 +139,7 @@ au pire), GIF de 80 millions de pixels (environ 80 Mo), 2 rendus à la fois.
 | `-neighborhood` | `vonneumann` | Cyclique : `moore` (carré) ou `vonneumann` (losange) |
 | `-radius` | `1` | Cyclique : rayon du voisinage |
 | `-delay` | `5` | Délai entre images du GIF, en 1/100 s |
+| `-pingpong` | `false` | GIF joué à l'endroit puis à l'envers : une boucle sans saut |
 | `-o` | `out.png` | Fichier de sortie : `.gif` produit une animation, sinon un PNG de la dernière génération |
 | `-serve` | | Sert la page web sur cette adresse (`:8080`) au lieu d'écrire un fichier |
 
