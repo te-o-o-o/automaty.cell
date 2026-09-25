@@ -43,10 +43,37 @@ func TestBlockAges(t *testing.T) {
 	}
 }
 
+// A blinker on the top edge flips into row -1: it wraps to the bottom row
+// on a torus, and is lost with dead borders.
+func TestBorders(t *testing.T) {
+	for _, tc := range []struct {
+		wrap bool
+		want int
+	}{{true, 3}, {false, 2}} {
+		g := NewGrid(5, 5, tc.wrap)
+		for x := 1; x <= 3; x++ {
+			g.Set(x, 0, true)
+		}
+		g = g.Step(Life)
+		alive := 0
+		for _, a := range g.Age {
+			if a > 0 {
+				alive++
+			}
+		}
+		if alive != tc.want {
+			t.Errorf("wrap=%v: %d live cells, want %d", tc.wrap, alive, tc.want)
+		}
+	}
+}
+
 func TestParseRule(t *testing.T) {
 	r, err := ParseRule("s23/b36")
 	if err != nil || r != (Rule{Birth: [9]bool{3: true, 6: true}, Survive: [9]bool{2: true, 3: true}}) {
 		t.Fatalf("got %v, %v", r, err)
+	}
+	if r, err := ParseRule("B2/S"); err != nil || r != (Rule{Birth: [9]bool{2: true}}) {
+		t.Fatalf("B2/S: got %v, %v", r, err)
 	}
 	if r, _ := ParseRule("B3/S23"); r != Life {
 		t.Fatalf("B3/S23 != Life")
