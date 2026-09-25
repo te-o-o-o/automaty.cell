@@ -19,12 +19,6 @@ type Rule struct {
 	States  int
 }
 
-// Life is the classic Game of Life, B3/S23.
-var Life = Rule{
-	Birth:   [9]bool{3: true},
-	Survive: [9]bool{2: true, 3: true},
-}
-
 // Presets are well-known rules, usable by name with -rule.
 var Presets = []struct{ Name, Rule string }{
 	{"life", "B3/S23"},
@@ -64,14 +58,6 @@ type Grid struct {
 
 func NewGrid(w, h int, wrap bool) *Grid {
 	return &Grid{W: w, H: h, Wrap: wrap, Cells: make([]uint8, w*h)}
-}
-
-// Set makes (x, y) a newborn cell, or kills it.
-func (g *Grid) Set(x, y int, alive bool) {
-	g.Cells[y*g.W+x] = 0
-	if alive {
-		g.Cells[y*g.W+x] = 1
-	}
 }
 
 // Randomize fills the grid so that roughly density of the cells are alive.

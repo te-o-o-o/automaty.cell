@@ -344,7 +344,7 @@ const $ = id => document.getElementById(id);
 // Kept in the page's own URL so a shared link opens in the same theme and language.
 const theme = new URLSearchParams(location.search).get('theme');
 const lang = new URLSearchParams(location.search).get('lang');
-const T = {{.JSText}}; // the few words the script writes itself
+const T = {{.T}}; // the page's words, for the few the script writes itself
 // Cyclic settings known to keep moving ("neighborhood,radius,states,threshold").
 const LIVELY = new Set({{.Lively}});
 
@@ -416,17 +416,14 @@ function query(opts, onlyChanged) {
 // Fill the form from [flag, value] pairs, as found in a shared URL or sent
 // back by /surprise.
 function applyParams(entries) {
-  const legacy = {}; // palette-from / palette-to, from links made before -colors
   for (const [k, v] of entries) {
     if (k === 'format') $('format').value = v;
     else if (k === 'cyclic') form.mode.value = v === 'true' ? 'cyclic' : 'rule';
     else if (k === 'palette') { $('custom').checked = false; form.palette.value = v; }
     else if (k === 'colors') { $('custom').checked = true; setColors(v.split(',')); }
-    else if (k === 'palette-from' || k === 'palette-to') { $('custom').checked = true; legacy[k] = v; }
     else if (form[k]?.type === 'checkbox') form[k].checked = v === 'true';
     else if (form[k]) form[k].value = v;
   }
-  if (legacy['palette-from'] && legacy['palette-to']) setColors([legacy['palette-from'], legacy['palette-to']]);
   const has = (select, value) => [...select.options].some(o => o.value === value);
   $('preset').value = has($('preset'), form.rule.value) ? form.rule.value : '';
   const cyc = [form.states.value, form.threshold.value, form.neighborhood.value, form.radius.value].join(',');

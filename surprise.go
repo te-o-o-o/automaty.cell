@@ -33,7 +33,8 @@ var cyclicLively = []struct {
 		13: {2, 3}, 14: {2, 3}, 15: {2, 3}}},
 }
 
-// livelyKeys lists every lively cyclic setting as "neighborhood,radius,states,threshold".
+// livelyKeys lists every lively cyclic setting as "neighborhood,radius,states,threshold",
+// for the web page's warning.
 func livelyKeys() []string {
 	var keys []string
 	for _, e := range cyclicLively {
@@ -59,7 +60,6 @@ func surprise(rng *rand.Rand, base options) options {
 			colourful = append(colourful, name)
 		}
 	}
-	lively := livelyKeys()
 	// The family is drawn once: retrying it too would favour the families
 	// that pass the interest test most often (cyclic ones nearly always do).
 	family := rng.Float64()
@@ -67,7 +67,7 @@ func surprise(rng *rand.Rand, base options) options {
 		o := base
 		o.seed = rng.Int63n(1_000_000)
 		o.palette = colourful[rng.Intn(len(colourful))]
-		o.palFrom, o.palTo, o.colors = "", "", ""
+		o.colors = ""
 		if rng.Float64() < 0.35 {
 			o.colors = randomColors(rng)
 		}
@@ -84,12 +84,16 @@ func surprise(rng *rand.Rand, base options) options {
 		o.density = 0.05 + float64(rng.Intn(66))/100
 		switch {
 		case family < 0.25:
-			o.cyclic = true
-			k := strings.Split(lively[rng.Intn(len(lively))], ",")
-			o.neighborhood = k[0]
-			o.radius, _ = strconv.Atoi(k[1])
-			o.states, _ = strconv.Atoi(k[2])
-			o.threshold, _ = strconv.Atoi(k[3])
+			e := cyclicLively[rng.Intn(len(cyclicLively))]
+			var states []int // in order, so a seed always gives the same pick
+			for s := 3; s <= 16; s++ {
+				if len(e.thresholds[s]) > 0 {
+					states = append(states, s)
+				}
+			}
+			o.cyclic, o.neighborhood, o.radius = true, e.neighborhood, e.radius
+			o.states = states[rng.Intn(len(states))]
+			o.threshold = e.thresholds[o.states][rng.Intn(len(e.thresholds[o.states]))]
 		case family < 0.45:
 			o.rule = Presets[rng.Intn(len(Presets))].Rule
 		case family < 0.65:
@@ -130,16 +134,11 @@ func mutate(rng *rand.Rand, rule string) string {
 		}
 		return strings.Join(parts, "/")
 	}
-	for i, p := range parts { // B…/S…, in either order
-		if rng.Intn(2) == 0 || i == len(parts)-1 {
-			from := 0
-			if p[0] == 'B' {
-				from = 1
-			}
-			parts[i] = p[:1] + toggle(p[1:], from)
-			break
-		}
+	i, from := rng.Intn(2), 0 // B…/S…
+	if parts[i][0] == 'B' {
+		from = 1
 	}
+	parts[i] = parts[i][:1] + toggle(parts[i][1:], from)
 	return strings.Join(parts, "/")
 }
 

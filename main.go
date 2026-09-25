@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/gif"
+	"image/png"
 	"io"
 	"math"
 	"os"
@@ -27,8 +29,7 @@ type options struct {
 	cyclic                    bool
 	states, threshold, radius int
 	neighborhood              string
-	palette, palFrom, palTo   string
-	colors                    string
+	palette, colors           string
 	gif                       bool // web only: GIF instead of PNG
 	out, serve                string
 	listRules                 bool
@@ -55,8 +56,6 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.IntVar(&o.radius, "radius", 1, "cyclic: neighbourhood radius")
 	fs.StringVar(&o.palette, "palette", "age", "colour gradient: "+strings.Join(paletteNames(), ", "))
 	fs.StringVar(&o.colors, "colors", "", "custom gradient of 2 to 8 colours, RRGGBB,RRGGBB,… (replaces -palette)")
-	fs.StringVar(&o.palFrom, "palette-from", "", "custom gradient start colour, RRGGBB (with -palette-to)")
-	fs.StringVar(&o.palTo, "palette-to", "", "custom gradient end colour, RRGGBB (with -palette-from)")
 	fs.StringVar(&o.serve, "serve", "", "serve the web page on this address (e.g. :8080) instead of writing a file")
 	return fs
 }
@@ -101,12 +100,16 @@ func (o *options) generate(w io.Writer) error {
 			g = step(g)
 			frames = append(frames, Render(g, o.scale, pal))
 		}
-		return WriteGIF(w, frames, o.delay)
+		anim := &gif.GIF{Image: frames, Delay: make([]int, len(frames))}
+		for i := range anim.Delay {
+			anim.Delay[i] = o.delay // 1/100 s per frame
+		}
+		return gif.EncodeAll(w, anim)
 	}
 	for i := 1; i < o.gens; i++ {
 		g = step(g)
 	}
-	return WritePNG(w, Render(g, o.scale, pal))
+	return png.Encode(w, Render(g, o.scale, pal))
 }
 
 // setup checks the options and returns the starting grid, the function that
@@ -131,14 +134,6 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 	gr, ok := gradients[o.palette]
 	if !ok {
 		return nil, nil, nil, fmt.Errorf("unknown palette %q (want one of %s)", o.palette, strings.Join(paletteNames(), ", "))
-	}
-	if o.palFrom != "" || o.palTo != "" {
-		from, err1 := parseHex(o.palFrom)
-		to, err2 := parseHex(o.palTo)
-		if err := errors.Join(err1, err2); err != nil {
-			return nil, nil, nil, fmt.Errorf("-palette-from and -palette-to: %w", err)
-		}
-		gr = gradient{black, []color.RGBA{from, to}}
 	}
 	if o.colors != "" {
 		var stops []color.RGBA

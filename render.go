@@ -3,9 +3,6 @@ package main
 import (
 	"image"
 	"image/color"
-	"image/gif"
-	"image/png"
-	"io"
 )
 
 // Render draws the grid with palette pal, each cell scale×scale pixels.
@@ -27,15 +24,4 @@ func Render(g *Grid, scale int, pal color.Palette) *image.Paletted {
 		}
 	}
 	return img
-}
-
-func WritePNG(w io.Writer, img image.Image) error { return png.Encode(w, img) }
-
-// WriteGIF writes frames as a looping animation, delay in 1/100 s per frame.
-func WriteGIF(w io.Writer, frames []*image.Paletted, delay int) error {
-	anim := &gif.GIF{Image: frames, Delay: make([]int, len(frames))}
-	for i := range anim.Delay {
-		anim.Delay[i] = delay
-	}
-	return gif.EncodeAll(w, anim)
 }

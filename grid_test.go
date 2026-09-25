@@ -5,6 +5,20 @@ import (
 	"testing"
 )
 
+// Life is the classic Game of Life, B3/S23.
+var Life = Rule{
+	Birth:   [9]bool{3: true},
+	Survive: [9]bool{2: true, 3: true},
+}
+
+// Set makes (x, y) a newborn cell, or kills it.
+func (g *Grid) Set(x, y int, alive bool) {
+	g.Cells[y*g.W+x] = 0
+	if alive {
+		g.Cells[y*g.W+x] = 1
+	}
+}
+
 // A glider moves one cell diagonally (down-right) every 4 generations.
 func TestGliderMoves(t *testing.T) {
 	glider := [][2]int{{1, 0}, {2, 1}, {0, 2}, {1, 2}, {2, 2}}

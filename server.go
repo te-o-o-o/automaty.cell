@@ -12,7 +12,6 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -56,12 +55,6 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if lang != "fr" {
 		lang = "en"
 	}
-	jsText := map[string]string{} // the words the page's script writes itself
-	for k, v := range texts[lang] {
-		if strings.HasPrefix(k, "js") {
-			jsText[k] = v
-		}
-	}
 	type palette struct{ Name, CSS string }
 	var palettes []palette
 	for _, name := range paletteNames() {
@@ -69,7 +62,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err := indexTmpl.Execute(w, map[string]any{
 		"Presets": Presets, "Palettes": palettes, "MaxSide": maxSide, "MaxScale": maxScale, "MaxGens": maxGens,
-		"Theme": theme, "Lang": lang, "T": texts[lang], "JSText": jsText, "Lively": livelyKeys(),
+		"Theme": theme, "Lang": lang, "T": texts[lang], "Lively": livelyKeys(),
 	})
 	if err != nil {
 		log.Print(err)

@@ -121,7 +121,6 @@ limites pour rester utilisable en ligne : grille de 500×500 au plus, échelle 8
 | `-wrap` | `true` | Bords toriques ; `-wrap=false` pour des bords morts |
 | `-palette` | `age` | Dégradé (`-h` les liste toutes) : `age`, `aurora`, `berry`, `bw`, `candy`, `cherry`, `cyber`, `dusk`, `fire`, `forest`, `gold`, `lagoon`, `lavender`, `lime`, `mint`, `mono`, `neon`, `ocean`, `peach`, `rainbow`, `sunset`, `toxic`, `viridis` |
 | `-colors` | | Dégradé personnalisé de 2 à 8 couleurs : `1a0033,ff3ea5,ffcc00` (remplace `-palette`) |
-| `-palette-from`, `-palette-to` | | Dégradé personnalisé entre deux couleurs `RRGGBB` (raccourci historique de `-colors`) |
 | `-cyclic` | `false` | Automate cyclique au lieu de `-rule` |
 | `-states` | `14` | Cyclique : nombre d'états (2-256) |
 | `-threshold` | `1` | Cyclique : voisins à l'état suivant nécessaires pour avancer |
