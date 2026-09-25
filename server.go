@@ -3,12 +3,15 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -41,6 +44,7 @@ func serve(addr string) error {
 		}
 	})
 	mux.HandleFunc("GET /render", handleRender)
+	mux.HandleFunc("GET /surprise", handleSurprise)
 
 	log.Printf("cellgen: listening on %s", addr)
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second, WriteTimeout: time.Minute}
@@ -127,4 +131,38 @@ func checkLimits(o *options) error {
 		return errors.New("GIF too large for the web page: lower the grid size, scale or generations (or use the CLI)")
 	}
 	return nil
+}
+
+// handleSurprise takes the page's current options and replies with random
+// creative ones (rule, palette, seed, symmetry…) that make an interesting
+// automaton, as JSON {flag: value}.
+func handleSurprise(w http.ResponseWriter, r *http.Request) {
+	o, err := parseQuery(r)
+	if err == nil {
+		err = checkLimits(o)
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	select {
+	case busy <- struct{}{}:
+		defer func() { <-busy }()
+	case <-r.Context().Done():
+		return
+	}
+	s := surprise(rand.New(rand.NewSource(time.Now().UnixNano())), *o)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"cyclic":       strconv.FormatBool(s.cyclic),
+		"rule":         s.rule,
+		"density":      strconv.FormatFloat(s.density, 'f', -1, 64),
+		"states":       strconv.Itoa(s.states),
+		"threshold":    strconv.Itoa(s.threshold),
+		"radius":       strconv.Itoa(s.radius),
+		"neighborhood": s.neighborhood,
+		"palette":      s.palette,
+		"seed":         strconv.FormatInt(s.seed, 10),
+		"symmetry":     strconv.Itoa(s.symmetry),
+	})
 }
