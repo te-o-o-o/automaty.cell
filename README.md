@@ -16,9 +16,6 @@ go build -o automaty.cell .
 
 ## Examples
 
-https://github.com/user-attachments/assets/2b9a8740-b0fd-4d23-a28a-fbf450609832
-
-
 Game of Life, 300 generations as an animated GIF:
 
 ```
