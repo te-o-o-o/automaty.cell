@@ -1,71 +1,111 @@
 <!doctype html>
-<html lang="fr">
+<html lang="{{.Lang}}" data-theme="{{.Theme}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>cellgen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <style>
+  /* Themes (?theme=…): bonbon (default) and arcade, both 8-bit. */
   :root {
-    --bg: #0b0b14;
-    --panel: #151522;
-    --line: #2a2a3d;
-    --text: #e8e6f0;
-    --muted: #9994b0;
-    --accent: #ff8a3d;
+    --bg: #1a1024;
+    --panel: #2a1a3a;
+    --line: #4d3366;
+    --stars: #2f1f42;
+    --text: #fff5fb;
+    --muted: #cdb4db;
+    --legend: #a0e7e5;
+    --primary: #ffafcc;
+    --primary-text: #1a1024;
+    --highlight: #fdffb6;
+    --link: #a0e7e5;
     --error: #ff6b6b;
+    --border: 2px;
+    --radius: 0;
+    --radius-small: 0;
+    --font: 18px/1.15 'VT323', monospace;
+    --small: 15px;
+    --pixel: 'Press Start 2P', monospace;
+  }
+  [data-theme=arcade] {
+    --bg: #0b0b1e;
+    --panel: #16163a;
+    --line: #3b3b7a;
+    --stars: #23234d;
+    --text: #f0f0ff;
+    --muted: #a9a9d6;
+    --legend: #4de3ff;
+    --primary: #ff4fa3;
+    --primary-text: #0b0b1e;
+    --highlight: #ffe14d;
+    --link: #4de3ff;
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font: 14px/1.4 system-ui, sans-serif;
+    font: var(--font);
+  }
+  body {
+    background-image: radial-gradient(var(--line) 1px, transparent 1.5px), radial-gradient(var(--stars) 1px, transparent 1.5px);
+    background-size: 48px 48px, 23px 23px;
+    background-position: 0 0, 11px 7px;
+  }
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
   }
   main {
     display: grid;
     grid-template-columns: 320px 1fr;
     gap: 16px;
-    padding: 16px;
-    max-width: 1400px;
-    margin: 0 auto;
+    align-items: start;
   }
   @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
   form { display: flex; flex-direction: column; gap: 12px; }
   fieldset {
     margin: 0;
     padding: 10px 12px 12px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
+    border: var(--border) solid var(--line);
+    border-radius: var(--radius);
     background: var(--panel);
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* columns may shrink below their fields' natural width */
     gap: 8px 10px;
+    min-width: 0;
   }
-  legend { padding: 0 6px; color: var(--accent); font-weight: 600; }
-  label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
+  legend { padding: 0 6px; color: var(--legend); font-weight: 600; }
+  label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: var(--small); }
   label.wide, .wide { grid-column: 1 / -1; }
   label.check { flex-direction: row; align-items: center; gap: 6px; }
   input, select, button {
     font: inherit;
     color: var(--text);
     background: var(--bg);
-    border: 1px solid var(--line);
-    border-radius: 5px;
+    border: var(--border) solid var(--line);
+    border-radius: var(--radius-small);
     padding: 5px 7px;
     min-width: 0;
   }
-  input[type=checkbox] { padding: 0; }
+  label > input, label > select, .row > input { width: 100%; }
+  input[type=checkbox], input[type=radio] { width: auto; padding: 0; accent-color: var(--primary); }
   input[type=color] { padding: 1px; height: 30px; width: 100%; }
-  input[type=range] { padding: 0; }
+  input[type=range] { padding: 0; accent-color: var(--highlight); }
   button { cursor: pointer; }
-  button:hover { border-color: var(--accent); }
+  button:hover { border-color: var(--primary); }
   #surprise {
     padding: 10px;
     font-weight: 600;
     font-size: 15px;
-    background: var(--accent);
-    color: #1a0f00;
-    border-color: var(--accent);
+    background: var(--primary);
+    color: var(--primary-text);
+    border-color: var(--primary);
   }
   #surprise:hover { filter: brightness(1.1); }
   #surprise:disabled { opacity: 0.6; cursor: wait; }
@@ -74,6 +114,45 @@
   .modes { display: flex; gap: 14px; }
   [hidden] { display: none !important; }
 
+  /* Symmetry as four "power-up" buttons: radios under their labels. */
+  .powers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .powers label { position: relative; display: block; }
+  .powers input { position: absolute; opacity: 0; }
+  .powers span {
+    display: block;
+    padding: 6px 0;
+    text-align: center;
+    color: var(--primary);
+    border: var(--border) solid var(--primary);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+  }
+  .powers input:checked + span { background: var(--primary); color: var(--primary-text); }
+  .powers input:focus-visible + span { outline: 2px solid var(--highlight); outline-offset: 2px; }
+  #palette-preview { display: block; height: 8px; border: var(--border) solid var(--line); }
+  .colors { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 6px; }
+  .colors input { width: 100%; height: 30px; padding: 1px; }
+  #color-add, #color-remove { flex: 1; }
+
+  #warning {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 3px solid var(--highlight);
+    box-shadow: 5px 5px 0 var(--primary);
+  }
+  #warning p { margin: 0; flex: 1; }
+  #warning strong { display: block; margin-bottom: 4px; color: var(--highlight); }
+  #warning button { flex-shrink: 0; background: var(--highlight); color: var(--primary-text); border: 0; box-shadow: 3px 3px 0 var(--primary); padding: 12px 14px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  header h1 { margin: 0; font-size: 18px; }
+  header label { flex-direction: row; align-items: center; gap: 8px; }
+  .pickers { display: flex; gap: 14px; }
+  header h1 { font-family: var(--pixel); font-size: 14px; font-weight: 400; color: var(--text); text-shadow: 3px 3px 0 var(--primary); }
+
   #view { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
   #frame {
     position: relative;
@@ -81,140 +160,207 @@
     place-items: center;
     min-height: 300px;
     background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
+    border: var(--border) solid var(--line);
+    border-radius: var(--radius);
     padding: 12px;
   }
   #frame img { max-width: 100%; height: auto; image-rendering: pixelated; }
+  #frame img { border: 3px solid var(--highlight); box-shadow: 6px 6px 0 var(--primary); max-width: calc(100% - 6px); max-height: calc(100% - 6px); }
   #status {
     position: absolute; top: 10px; right: 12px;
-    color: var(--muted); font-size: 12px;
+    color: var(--muted); font-size: var(--small);
   }
   #error { color: var(--error); white-space: pre-wrap; }
   #cmd {
     display: flex; gap: 8px; align-items: center;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+    background: var(--panel); border: var(--border) solid var(--line); border-radius: var(--radius); padding: 8px 10px;
   }
   #cmd code { flex: 1; overflow-x: auto; white-space: nowrap; font-size: 13px; }
-  #cmd a { color: var(--accent); }
+  #cmd a { color: var(--link); }
+
+  /* 8-bit type: pixel font for titles and the big button. */
+  legend,
+  #warning strong,
+  #warning button,
+  .powers span { font-family: var(--pixel); font-size: 9px; font-weight: 400; text-transform: uppercase; line-height: 1.6; }
+  #warning strong { font-size: 11px; }
+  #surprise { font-family: var(--pixel); font-size: 12px; font-weight: 400; box-shadow: 4px 4px 0 var(--highlight); }
+  #cmd code { font: var(--font); color: var(--highlight); }
+  label input,
+  label select { font-size: 18px; }
+  /* Desktop: everything fits in one screen. The image shrinks to the space
+     left, and the settings scroll inside their column on short screens. */
+  @media (min-width: 801px) {
+    .page { height: 100vh; height: 100dvh; }
+    main { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; }
+    form { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    #view { min-height: 0; }
+    #frame { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+    #frame img { max-height: 100%; width: auto; object-fit: contain; }
+  }
 </style>
 </head>
 <body>
+<div class="page">
+<header>
+  <h1>cellgen</h1>
+  <div class="pickers">
+    <label>{{.T.theme}}
+      <select id="theme">
+        <option value="bonbon"{{if eq .Theme "bonbon"}} selected{{end}}>{{.T.themeCandy}}</option>
+        <option value="arcade"{{if eq .Theme "arcade"}} selected{{end}}>{{.T.themeArcade}}</option>
+      </select>
+    </label>
+    <label>{{.T.language}}
+      <select id="lang">
+        <option value="en"{{if eq .Lang "en"}} selected{{end}}>English</option>
+        <option value="fr"{{if eq .Lang "fr"}} selected{{end}}>Français</option>
+      </select>
+    </label>
+  </div>
+</header>
+<section id="warning" aria-label="{{.T.warningLabel}}">
+  <p><strong>{{.T.warningTitle}}</strong>{{.T.warningText}}</p>
+  <button type="button" id="warning-ok">START</button>
+</section>
+
 <main>
 <form id="form" autocomplete="off">
-  <button type="button" id="surprise">✨ Surprends-moi</button>
+  <button type="button" id="surprise" title="{{.T.randomTitle}}">? RANDOM</button>
   <fieldset>
-    <legend>Automate</legend>
+    <legend>{{.T.automaton}}</legend>
     <div class="modes wide">
-      <label class="check"><input type="radio" name="mode" value="rule" checked> Règle B/S ou Generations</label>
-      <label class="check"><input type="radio" name="mode" value="cyclic"> Cyclique</label>
+      <label class="check"><input type="radio" name="mode" value="rule" checked> {{.T.modeRule}}</label>
+      <label class="check"><input type="radio" name="mode" value="cyclic"> {{.T.modeCyclic}}</label>
     </div>
 
-    <label class="wide" data-mode="rule">Preset
+    <label class="wide" data-mode="rule">{{.T.preset}}
       <select id="preset">
-        <option value="">— règle personnalisée —</option>
+        <option value="">{{.T.customRule}}</option>
         {{range .Presets}}<option value="{{.Name}}">{{.Name}} ({{.Rule}})</option>
         {{end}}
       </select>
     </label>
-    <label class="wide" data-mode="rule">Règle (B3/S23, 345/2/4, ou nom de preset)
+    <label class="wide" data-mode="rule">{{.T.rule}}
       <input name="rule" value="B3/S23">
     </label>
 
-    <label class="wide" data-mode="cyclic">Préréglage
+    <label class="wide" data-mode="cyclic">{{.T.preset}}
       <select id="cyclic-preset">
-        <option value="">— personnalisé —</option>
-        <option value="3,3,moore,1">Spirales rondes (3 / 3 / Moore / 1)</option>
-        <option value="4,3,moore,1">Vagues (4 / 3 / Moore / 1)</option>
-        <option value="8,5,moore,3">Grandes spirales (8 / 5 / Moore / 3)</option>
-        <option value="14,1,vonneumann,1">Spirales carrées (14 / 1 / Von Neumann / 1)</option>
-        <option value="6,2,vonneumann,2">Labyrinthe (6 / 2 / Von Neumann / 2)</option>
+        <option value="">{{.T.custom}}</option>
+        <option value="3,3,moore,1">{{.T.roundSpirals}} (3 / 3 / Moore / 1)</option>
+        <option value="4,3,moore,1">{{.T.waves}} (4 / 3 / Moore / 1)</option>
+        <option value="8,5,moore,3">{{.T.bigSpirals}} (8 / 5 / Moore / 3)</option>
+        <option value="14,1,vonneumann,1">{{.T.squareSpirals}} (14 / 1 / Von Neumann / 1)</option>
+        <option value="6,2,vonneumann,2">{{.T.maze}} (6 / 2 / Von Neumann / 2)</option>
       </select>
     </label>
-    <label data-mode="cyclic">États <input name="states" type="number" min="2" max="256" value="14"></label>
-    <label data-mode="cyclic">Seuil <input name="threshold" type="number" min="1" value="3"></label>
-    <label data-mode="cyclic">Voisinage
+    <label data-mode="cyclic">{{.T.states}} <input name="states" type="number" min="2" max="256" value="14"></label>
+    <label data-mode="cyclic">{{.T.threshold}} <input name="threshold" type="number" min="1" value="3"></label>
+    <label data-mode="cyclic">{{.T.neighbourhood}}
       <select name="neighborhood">
-        <option value="moore">Moore (carré)</option>
-        <option value="vonneumann">Von Neumann (losange)</option>
+        <option value="moore">{{.T.moore}}</option>
+        <option value="vonneumann">{{.T.vonNeumann}}</option>
       </select>
     </label>
-    <label data-mode="cyclic">Rayon <input name="radius" type="number" min="1" value="1"></label>
+    <label data-mode="cyclic">{{.T.radius}} <input name="radius" type="number" min="1" value="1"></label>
   </fieldset>
 
   <fieldset>
-    <legend>Grille</legend>
-    <label>Largeur <input name="w" type="number" min="1" max="{{.MaxSide}}" value="200"></label>
-    <label>Hauteur <input name="h" type="number" min="1" max="{{.MaxSide}}" value="200"></label>
-    <label>Pixels par cellule <input name="scale" type="number" min="1" max="{{.MaxScale}}" value="4"></label>
-    <label class="check" style="align-self:end"><input name="wrap" type="checkbox" checked> Bords toriques</label>
+    <legend>{{.T.grid}}</legend>
+    <label>{{.T.width}} <input name="w" type="number" min="30" max="{{.MaxSide}}" step="50" value="380"></label>
+    <label>{{.T.height}} <input name="h" type="number" min="30" max="{{.MaxSide}}" step="50" value="380"></label>
+    <label>{{.T.scale}} <input name="scale" type="number" min="1" max="{{.MaxScale}}" value="2"></label>
+    <label class="check" style="align-self:end"><input name="wrap" type="checkbox" checked> {{.T.wrap}}</label>
   </fieldset>
 
   <fieldset>
-    <legend>Départ</legend>
+    <legend>{{.T.start}}</legend>
     <label class="wide">Seed
-      <span class="row"><input name="seed" type="number" value="1"><button type="button" id="dice" title="Seed aléatoire">🎲</button></span>
+      <span class="row"><input name="seed" type="number" value="1"><button type="button" id="dice" aria-label="{{.T.randomSeed}}" title="{{.T.randomSeed}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18"></rect><rect x="7" y="7" width="2" height="2" fill="currentColor"></rect><rect x="15" y="15" width="2" height="2" fill="currentColor"></rect><rect x="11" y="11" width="2" height="2" fill="currentColor"></rect></svg></button></span>
     </label>
-    <label class="wide">Symétrie
-      <select name="symmetry">
-        <option value="1">Aucune</option>
-        <option value="2">Miroir (2)</option>
-        <option value="4">Quadruple (4)</option>
-        <option value="8">Kaléidoscope (8, grille carrée)</option>
-      </select>
-    </label>
-    <label class="wide" data-mode="rule">Densité : <output id="density-out">0.3</output>
+    <div class="wide"><span id="symmetry-label" style="display:block; margin-bottom:3px; color:var(--muted); font-size:var(--small)">{{.T.symmetry}}</span>
+      <div class="powers" role="radiogroup" aria-labelledby="symmetry-label">
+        <label><input type="radio" name="symmetry" value="1" checked><span>×1</span></label>
+        <label><input type="radio" name="symmetry" value="2"><span>×2</span></label>
+        <label><input type="radio" name="symmetry" value="4"><span>×4</span></label>
+        <label title="{{.T.squareOnly}}"><input type="radio" name="symmetry" value="8"><span>×8</span></label>
+      </div>
+    </div>
+    <label class="wide" data-mode="rule">{{.T.density}} : <output id="density-out">0.3</output>
       <input name="density" type="range" min="0" max="1" step="0.01" value="0.3">
     </label>
   </fieldset>
 
   <fieldset>
-    <legend>Rendu</legend>
+    <legend>{{.T.output}}</legend>
     <label>Format
       <select id="format">
-        <option value="png">PNG (dernière génération)</option>
-        <option value="gif">GIF animé</option>
+        <option value="png">{{.T.pngLast}}</option>
+        <option value="gif">{{.T.gifAnimated}}</option>
       </select>
     </label>
-    <label>Générations <input name="gens" type="number" min="1" max="{{.MaxGens}}" value="100"></label>
-    <label data-format="gif">Délai (1/100 s) <input name="delay" type="number" min="0" value="5"></label>
+    <label>{{.T.generations}} <input name="gens" type="number" min="1" max="{{.MaxGens}}" value="100"></label>
+    <label data-format="gif">{{.T.delay}} <input name="delay" type="number" min="0" value="5"></label>
   </fieldset>
 
   <fieldset>
-    <legend>Couleurs</legend>
-    <label class="wide">Palette
+    <legend>{{.T.colours}}</legend>
+    <label class="wide">{{.T.palette}}
       <select name="palette">
-        {{range .Palettes}}<option{{if eq . "age"}} selected{{end}}>{{.}}</option>{{end}}
+        {{range .Palettes}}<option data-gradient="{{.CSS}}"{{if eq .Name "age"}} selected{{end}}>{{.Name}}</option>{{end}}
       </select>
+      <span id="palette-preview" aria-hidden="true"></span>
     </label>
-    <label class="check wide"><input type="checkbox" id="custom"> Dégradé personnalisé</label>
-    <label data-custom>De <input name="palette-from" type="color" value="#1a0033"></label>
-    <label data-custom>À <input name="palette-to" type="color" value="#ffcc00"></label>
+    <label class="check wide"><input type="checkbox" id="custom"> {{.T.customGradient}}</label>
+    <div class="wide" data-custom>
+      <div id="colors" class="colors"></div>
+      <div class="row"><button type="button" id="color-add">{{.T.addColour}}</button><button type="button" id="color-remove">{{.T.removeColour}}</button></div>
+    </div>
   </fieldset>
 </form>
 
 <section id="view">
   <div id="frame">
     <span id="status"></span>
-    <img id="img" alt="rendu de l'automate">
+    <img id="img" alt="{{.T.renderAlt}}">
     <div id="error" hidden></div>
   </div>
   <div id="cmd">
     <code id="cmdline"></code>
-    <button type="button" id="copy">Copier la commande</button>
-    <button type="button" id="link">Copier le lien</button>
-    <a id="download" download>Télécharger</a>
+    <button type="button" id="copy">{{.T.copyCommand}}</button>
+    <button type="button" id="link">{{.T.copyLink}}</button>
+    <a id="download" download>{{.T.download}}</a>
   </div>
 </section>
 </main>
+</div>
 
 <script>
 const form = document.getElementById('form');
 const $ = id => document.getElementById(id);
+// Kept in the page's own URL so a shared link opens in the same theme and language.
+const theme = new URLSearchParams(location.search).get('theme');
+const lang = new URLSearchParams(location.search).get('lang');
+const T = {{.JSText}}; // the few words the script writes itself
 
 const mode = () => form.mode.value;
 const format = () => $('format').value;
 const custom = () => $('custom').checked;
+// The custom gradient's colours, as #rrggbb, from 2 to 8 of them.
+const colors = () => [...$('colors').querySelectorAll('input')].map(i => i.value);
+
+function setColors(list) {
+  $('colors').replaceChildren(...list.map((c, i) => {
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.value = c.startsWith('#') ? c : '#' + c;
+    input.setAttribute('aria-label', T.jsColour + ' ' + (i + 1));
+    return input;
+  }));
+  $('color-add').disabled = list.length >= 8;
+  $('color-remove').disabled = list.length <= 2;
+}
 
 // Show only the fields that apply to the current mode, format and palette.
 function updateVisibility() {
@@ -223,6 +369,9 @@ function updateVisibility() {
   for (const el of form.querySelectorAll('[data-custom]')) el.hidden = !custom();
   form.palette.disabled = custom();
   $('density-out').value = form.density.value;
+  $('palette-preview').style.background = custom()
+    ? `linear-gradient(90deg, ${colors().join(', ')})`
+    : form.palette.selectedOptions[0].dataset.gradient;
 }
 
 // The options to send, as [flag, value, isDefault]; hidden fields are skipped.
@@ -231,15 +380,16 @@ function options() {
   if (mode() === 'cyclic') opts.push(['cyclic', 'true', false]);
   for (const el of form.elements) {
     if (!el.name || el.name === 'mode' || el.disabled || el.closest('[hidden]')) continue;
-    if (el.type === 'checkbox') {
+    if (el.type === 'radio') {
+      if (el.checked) opts.push([el.name, el.value, el.defaultChecked]);
+    } else if (el.type === 'checkbox') {
       opts.push([el.name, String(el.checked), el.checked === el.defaultChecked]);
-    } else if (el.type === 'color') {
-      opts.push([el.name, el.value.slice(1), false]);
     } else {
       const def = el.tagName === 'SELECT' ? ([...el.options].find(o => o.defaultSelected) ?? el.options[0]).value : el.defaultValue;
       opts.push([el.name, el.value, el.value === def]);
     }
   }
+  if (custom()) opts.push(['colors', colors().map(c => c.slice(1)).join(','), false]);
   return opts;
 }
 
@@ -260,14 +410,17 @@ function query(opts, onlyChanged) {
 // Fill the form from [flag, value] pairs, as found in a shared URL or sent
 // back by /surprise.
 function applyParams(entries) {
+  const legacy = {}; // palette-from / palette-to, from links made before -colors
   for (const [k, v] of entries) {
     if (k === 'format') $('format').value = v;
     else if (k === 'cyclic') form.mode.value = v === 'true' ? 'cyclic' : 'rule';
     else if (k === 'palette') { $('custom').checked = false; form.palette.value = v; }
-    else if (k === 'palette-from' || k === 'palette-to') { $('custom').checked = true; form[k].value = '#' + v; }
+    else if (k === 'colors') { $('custom').checked = true; setColors(v.split(',')); }
+    else if (k === 'palette-from' || k === 'palette-to') { $('custom').checked = true; legacy[k] = v; }
     else if (form[k]?.type === 'checkbox') form[k].checked = v === 'true';
     else if (form[k]) form[k].value = v;
   }
+  if (legacy['palette-from'] && legacy['palette-to']) setColors([legacy['palette-from'], legacy['palette-to']]);
   const has = (select, value) => [...select.options].some(o => o.value === value);
   $('preset').value = has($('preset'), form.rule.value) ? form.rule.value : '';
   const cyc = [form.states.value, form.threshold.value, form.neighborhood.value, form.radius.value].join(',');
@@ -279,11 +432,14 @@ async function render() {
   clearTimeout(timer);
   const opts = options();
   $('cmdline').textContent = commandLine(opts);
-  history.replaceState(null, '', '?' + query(opts, true));
+  const own = query(opts, true);
+  if (theme) own.set('theme', theme);
+  if (lang) own.set('lang', lang);
+  history.replaceState(null, '', '?' + own);
 
   controller?.abort();
   controller = new AbortController();
-  $('status').textContent = 'calcul…';
+  $('status').textContent = T.jsRendering;
   try {
     const res = await fetch('/render?' + query(opts, false), { signal: controller.signal });
     if (!res.ok) throw new Error(await res.text());
@@ -306,7 +462,7 @@ async function render() {
 
 async function surprise() {
   $('surprise').disabled = true;
-  $('status').textContent = 'recherche…';
+  $('status').textContent = T.jsSearching;
   try {
     const res = await fetch('/surprise?' + query(options(), false));
     if (!res.ok) throw new Error(await res.text());
@@ -355,7 +511,34 @@ $('dice').addEventListener('click', () => {
 $('copy').addEventListener('click', () => navigator.clipboard.writeText($('cmdline').textContent));
 $('link').addEventListener('click', () => navigator.clipboard.writeText(location.href));
 $('surprise').addEventListener('click', surprise);
+$('color-add').addEventListener('click', () => {
+  const extra = ['#3ef3ff', '#9dff3e', '#ff8a3d', '#7b5cff', '#ffffff', '#ff3b3b'];
+  setColors([...colors(), extra[colors().length % extra.length]]);
+  changed();
+});
+$('color-remove').addEventListener('click', () => {
+  setColors(colors().slice(0, -1));
+  changed();
+});
+// Switching theme or language reloads the page; the settings are already in
+// its URL. The defaults (bonbon, en) are left out of it.
+for (const [id, def] of [['theme', 'bonbon'], ['lang', 'en']]) {
+  $(id).addEventListener('change', e => {
+    const params = new URLSearchParams(location.search);
+    if (e.target.value === def) params.delete(id);
+    else params.set(id, e.target.value);
+    location.search = params;
+  });
+}
 
+// The warning stays dismissed on later visits (when storage is available).
+try { if (localStorage.getItem('cellgen-warning-ok')) $('warning').hidden = true; } catch {}
+$('warning-ok').addEventListener('click', () => {
+  $('warning').hidden = true;
+  try { localStorage.setItem('cellgen-warning-ok', '1'); } catch {}
+});
+
+setColors(['#1a0033', '#ff3ea5', '#ffcc00']);
 applyParams(new URLSearchParams(location.search));
 updateVisibility();
 render();

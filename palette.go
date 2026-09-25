@@ -44,6 +44,18 @@ var gradients = map[string]gradient{
 		{59, 216, 255, 255}, {123, 59, 255, 255}, {255, 59, 216, 255}}},
 	"gold": {color.RGBA{14, 10, 4, 255}, []color.RGBA{
 		{255, 248, 220, 255}, {255, 215, 0, 255}, {192, 138, 0, 255}, {92, 61, 0, 255}}},
+
+	// Three-colour gradients.
+	"mint":     {color.RGBA{4, 18, 26, 255}, []color.RGBA{{234, 255, 245, 255}, {62, 230, 176, 255}, {11, 79, 108, 255}}},
+	"lagoon":   {color.RGBA{5, 12, 30, 255}, []color.RGBA{{240, 255, 224, 255}, {46, 196, 182, 255}, {26, 58, 143, 255}}},
+	"peach":    {color.RGBA{24, 8, 16, 255}, []color.RGBA{{255, 244, 224, 255}, {255, 159, 107, 255}, {122, 31, 79, 255}}},
+	"berry":    {color.RGBA{16, 6, 22, 255}, []color.RGBA{{255, 214, 240, 255}, {214, 51, 127, 255}, {58, 11, 82, 255}}},
+	"lime":     {color.RGBA{6, 14, 6, 255}, []color.RGBA{{247, 255, 208, 255}, {182, 255, 59, 255}, {31, 107, 46, 255}}},
+	"dusk":     {color.RGBA{12, 8, 28, 255}, []color.RGBA{{255, 230, 168, 255}, {227, 107, 174, 255}, {46, 26, 107, 255}}},
+	"cyber":    {color.RGBA{8, 6, 20, 255}, []color.RGBA{{224, 251, 255, 255}, {0, 229, 255, 255}, {255, 0, 200, 255}}},
+	"forest":   {color.RGBA{6, 12, 7, 255}, []color.RGBA{{232, 255, 207, 255}, {111, 191, 74, 255}, {27, 59, 31, 255}}},
+	"lavender": {color.RGBA{14, 10, 24, 255}, []color.RGBA{{255, 255, 255, 255}, {179, 157, 219, 255}, {74, 44, 122, 255}}},
+	"cherry":   {color.RGBA{20, 4, 8, 255}, []color.RGBA{{255, 245, 245, 255}, {255, 46, 77, 255}, {77, 0, 20, 255}}},
 }
 
 // paletteNames lists the gradients by name, sorted.
@@ -86,6 +98,20 @@ func (gr gradient) palette(n int, withBg bool, pos func(s int) float64) color.Pa
 		p = p[:len(p)-1]
 	}
 	return p
+}
+
+// css returns the gradient's live colours as a CSS linear-gradient, for the
+// web page's palette preview.
+func (gr gradient) css() string {
+	stops := gr.stops
+	if len(stops) == 1 {
+		stops = append(stops, stops[0]) // CSS needs two stops
+	}
+	var hex []string
+	for _, c := range stops {
+		hex = append(hex, fmt.Sprintf("#%02x%02x%02x", c.R, c.G, c.B))
+	}
+	return "linear-gradient(90deg, " + strings.Join(hex, ", ") + ")"
 }
 
 // parseHex reads a colour written RRGGBB or #RRGGBB.

@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -23,7 +24,7 @@ var indexTmpl = template.Must(template.New("index").Parse(indexHTML))
 // Limits for the web server only: a public page must not let one request
 // take the whole machine. The CLI has none.
 const (
-	maxSide   = 400           // cells per side
+	maxSide   = 500           // cells per side
 	maxScale  = 8             // pixels per cell
 	maxGens   = 2000          // generations
 	maxWork   = 1_000_000_000 // cells × generations × neighbourhood size
@@ -35,20 +36,44 @@ var busy = make(chan struct{}, 2)
 
 func serve(addr string) error {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		err := indexTmpl.Execute(w, map[string]any{
-			"Presets": Presets, "Palettes": paletteNames(), "MaxSide": maxSide, "MaxScale": maxScale, "MaxGens": maxGens,
-		})
-		if err != nil {
-			log.Print(err)
-		}
-	})
+	mux.HandleFunc("GET /{$}", indexHandler)
 	mux.HandleFunc("GET /render", handleRender)
 	mux.HandleFunc("GET /surprise", handleSurprise)
 
 	log.Printf("cellgen: listening on %s", addr)
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second, WriteTimeout: time.Minute}
 	return srv.ListenAndServe()
+}
+
+// indexHandler serves the page in the theme named by ?theme= (bonbon, the
+// default, or arcade) and the language named by ?lang= (en, the default, or fr).
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	theme := r.URL.Query().Get("theme")
+	if theme != "arcade" {
+		theme = "bonbon"
+	}
+	lang := r.URL.Query().Get("lang")
+	if lang != "fr" {
+		lang = "en"
+	}
+	jsText := map[string]string{} // the words the page's script writes itself
+	for k, v := range texts[lang] {
+		if strings.HasPrefix(k, "js") {
+			jsText[k] = v
+		}
+	}
+	type palette struct{ Name, CSS string }
+	var palettes []palette
+	for _, name := range paletteNames() {
+		palettes = append(palettes, palette{name, gradients[name].css()})
+	}
+	err := indexTmpl.Execute(w, map[string]any{
+		"Presets": Presets, "Palettes": palettes, "MaxSide": maxSide, "MaxScale": maxScale, "MaxGens": maxGens,
+		"Theme": theme, "Lang": lang, "T": texts[lang], "JSText": jsText,
+	})
+	if err != nil {
+		log.Print(err)
+	}
 }
 
 // handleRender reads the same options as the CLI from the query string
@@ -133,9 +158,8 @@ func checkLimits(o *options) error {
 	return nil
 }
 
-// handleSurprise takes the page's current options and replies with random
-// creative ones (rule, palette, seed, symmetry…) that make an interesting
-// automaton, as JSON {flag: value}.
+// handleSurprise replies with random options that make an interesting
+// animated automaton (see surprise), as JSON {flag: value}.
 func handleSurprise(w http.ResponseWriter, r *http.Request) {
 	o, err := parseQuery(r)
 	if err == nil {
@@ -164,5 +188,9 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 		"palette":      s.palette,
 		"seed":         strconv.FormatInt(s.seed, 10),
 		"symmetry":     strconv.Itoa(s.symmetry),
+		"format":       "gif",
+		"gens":         strconv.Itoa(s.gens),
+		"delay":        strconv.Itoa(s.delay),
+		"wrap":         strconv.FormatBool(s.wrap),
 	})
 }

@@ -6,9 +6,11 @@ import (
 	"strings"
 )
 
-// surprise returns random creative settings (rule, palette, seed, symmetry…)
-// on top of base, retrying until the automaton looks interesting. Grid size,
-// scale, generations and format are kept from base.
+// surprise returns random settings on top of base, retrying until the
+// automaton looks interesting: rule, palette, seed, symmetry, and the
+// animation (a GIF): generations, speed and edges. The grid size and cell
+// size stay those of base; generations are cut if needed to stay within the
+// web page's limits.
 func surprise(rng *rand.Rand, base options) options {
 	var colourful []string // every gradient but black and white
 	for _, name := range paletteNames() {
@@ -20,11 +22,15 @@ func surprise(rng *rand.Rand, base options) options {
 		o := base
 		o.seed = rng.Int63n(1_000_000)
 		o.palette = colourful[rng.Intn(len(colourful))]
-		o.palFrom, o.palTo = "", ""
+		o.palFrom, o.palTo, o.colors = "", "", ""
 		o.symmetry = []int{1, 1, 2, 4, 8}[rng.Intn(5)]
 		if o.symmetry == 8 && o.w != o.h {
 			o.symmetry = 4
 		}
+		o.gif = true
+		o.gens = 60 + rng.Intn(91)
+		o.delay = []int{3, 5, 8, 12}[rng.Intn(4)]
+		o.wrap = rng.Float64() < 0.75
 		o.cyclic = rng.Float64() < 0.25
 		if o.cyclic {
 			o.states = 3 + rng.Intn(14)
@@ -34,6 +40,9 @@ func surprise(rng *rand.Rand, base options) options {
 		} else {
 			o.rule = randomRule(rng)
 			o.density = float64(20+rng.Intn(41)) / 100
+		}
+		for o.gens > 20 && checkLimits(&o) != nil {
+			o.gens -= 10
 		}
 		if interesting(o) {
 			return o

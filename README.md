@@ -73,7 +73,7 @@ en miroir, et comme les règles sont symétriques, le motif le reste :
 Dégradé personnalisé :
 
 ```
-./cellgen -rule belzhab -gens 150 -palette-from 1a0033 -palette-to ffcc00 -o belzhab.png
+./cellgen -rule belzhab -gens 150 -colors 1a0033,ff3ea5,ffcc00,3ef3ff -o belzhab.png
 ```
 
 Lister les règles nommées :
@@ -92,15 +92,19 @@ Puis ouvrir http://localhost:8080 : chaque option a son champ, le rendu se
 recalcule à chaque changement, et la commande CLI équivalente s'affiche sous
 l'image.
 
-- **✨ Surprends-moi** tire au hasard une règle (B/S, Generations ou cyclique),
-  une palette, une seed et une symétrie, en écartant les automates qui
-  meurent, se figent ou restent du bruit (testés sur une petite grille avant).
-- **Copier le lien** : l'URL de la page contient les réglages, il suffit de
-  l'envoyer pour que l'autre voie la même création.
+- **? RANDOM** tire au hasard une règle (B/S, Generations ou cyclique), une
+  palette, une seed, une symétrie et une animation (GIF : vitesse, durée,
+  bords), en écartant les automates qui meurent, se figent ou restent du bruit
+  (testés sur une petite grille avant).
+- **Thème et langue** : sélecteurs en haut à droite. Thème `bonbon` (par
+  défaut) ou `arcade`, langue anglais (par défaut) ou français. Aussi par l'URL :
+  `?theme=arcade&lang=fr`.
+- **Copy link** : l'URL de la page contient les réglages (et le thème, la
+  langue), il suffit de l'envoyer pour que l'autre voie la même création.
 
-La page utilise le même moteur que le CLI (même image au pixel près),
-avec des limites pour rester utilisable en ligne : grille de 400×400 au plus,
-échelle 8, 2000 générations, GIF de 200 millions de pixels, 2 rendus à la fois.
+La page utilise le même moteur que le CLI (même image au pixel près), avec des
+limites pour rester utilisable en ligne : grille de 500×500 au plus, échelle 8,
+2000 générations, GIF de 200 millions de pixels, 2 rendus à la fois.
 
 ## Options
 
@@ -108,15 +112,16 @@ avec des limites pour rester utilisable en ligne : grille de 400×400 au plus,
 |---|---|---|
 | `-rule` | `B3/S23` | Règle B/S (`B36/S23`, `b2/s`…), Generations S/B/C (`345/2/4`, `/2/3`…) ou nom de preset |
 | `-list-rules` | | Affiche les presets et quitte |
-| `-w`, `-h` | `200` | Taille de la grille en cellules |
-| `-scale` | `4` | Pixels par cellule |
+| `-w`, `-h` | `380` | Taille de la grille en cellules |
+| `-scale` | `2` | Pixels par cellule |
 | `-gens` | `100` | Nombre de générations, l'état initial compris |
 | `-seed` | `1` | Graine aléatoire : même graine, même résultat |
 | `-symmetry` | `1` | Départ en miroir : `1` (aucun), `2`, `4` ou `8` (grille carrée) |
 | `-density` | `0.3` | Proportion initiale de cellules vivantes (ignorée en cyclique : états uniformes) |
 | `-wrap` | `true` | Bords toriques ; `-wrap=false` pour des bords morts |
-| `-palette` | `age` | Dégradé : `age`, `aurora`, `bw`, `candy`, `fire`, `gold`, `mono`, `neon`, `ocean`, `rainbow`, `sunset`, `toxic`, `viridis` |
-| `-palette-from`, `-palette-to` | | Dégradé personnalisé entre deux couleurs `RRGGBB` (remplace `-palette`) |
+| `-palette` | `age` | Dégradé (`-h` les liste toutes) : `age`, `aurora`, `berry`, `bw`, `candy`, `cherry`, `cyber`, `dusk`, `fire`, `forest`, `gold`, `lagoon`, `lavender`, `lime`, `mint`, `mono`, `neon`, `ocean`, `peach`, `rainbow`, `sunset`, `toxic`, `viridis` |
+| `-colors` | | Dégradé personnalisé de 2 à 8 couleurs : `1a0033,ff3ea5,ffcc00` (remplace `-palette`) |
+| `-palette-from`, `-palette-to` | | Dégradé personnalisé entre deux couleurs `RRGGBB` (raccourci historique de `-colors`) |
 | `-cyclic` | `false` | Automate cyclique au lieu de `-rule` |
 | `-states` | `14` | Cyclique : nombre d'états (2-256) |
 | `-threshold` | `3` | Cyclique : voisins à l'état suivant nécessaires pour avancer |

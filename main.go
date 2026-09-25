@@ -28,6 +28,7 @@ type options struct {
 	states, threshold, radius int
 	neighborhood              string
 	palette, palFrom, palTo   string
+	colors                    string
 	gif                       bool // web only: GIF instead of PNG
 	out, serve                string
 	listRules                 bool
@@ -35,9 +36,9 @@ type options struct {
 
 func newFlagSet(o *options) *flag.FlagSet {
 	fs := flag.NewFlagSet("cellgen", flag.ContinueOnError)
-	fs.IntVar(&o.w, "w", 200, "grid width in cells")
-	fs.IntVar(&o.h, "h", 200, "grid height in cells")
-	fs.IntVar(&o.scale, "scale", 4, "pixels per cell")
+	fs.IntVar(&o.w, "w", 380, "grid width in cells")
+	fs.IntVar(&o.h, "h", 380, "grid height in cells")
+	fs.IntVar(&o.scale, "scale", 2, "pixels per cell")
 	fs.IntVar(&o.gens, "gens", 100, "number of generations to run")
 	fs.Int64Var(&o.seed, "seed", 1, "random seed")
 	fs.Float64Var(&o.density, "density", 0.3, "initial fraction of live cells")
@@ -53,6 +54,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.StringVar(&o.neighborhood, "neighborhood", "moore", "cyclic: moore or vonneumann")
 	fs.IntVar(&o.radius, "radius", 1, "cyclic: neighbourhood radius")
 	fs.StringVar(&o.palette, "palette", "age", "colour gradient: "+strings.Join(paletteNames(), ", "))
+	fs.StringVar(&o.colors, "colors", "", "custom gradient of 2 to 8 colours, RRGGBB,RRGGBB,… (replaces -palette)")
 	fs.StringVar(&o.palFrom, "palette-from", "", "custom gradient start colour, RRGGBB (with -palette-to)")
 	fs.StringVar(&o.palTo, "palette-to", "", "custom gradient end colour, RRGGBB (with -palette-from)")
 	fs.StringVar(&o.serve, "serve", "", "serve the web page on this address (e.g. :8080) instead of writing a file")
@@ -137,6 +139,20 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 			return nil, nil, nil, fmt.Errorf("-palette-from and -palette-to: %w", err)
 		}
 		gr = gradient{black, []color.RGBA{from, to}}
+	}
+	if o.colors != "" {
+		var stops []color.RGBA
+		for _, hex := range strings.Split(o.colors, ",") {
+			c, err := parseHex(hex)
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("-colors: %w", err)
+			}
+			stops = append(stops, c)
+		}
+		if len(stops) < 2 || len(stops) > 8 {
+			return nil, nil, nil, fmt.Errorf("-colors: want 2 to 8 colours, got %d", len(stops))
+		}
+		gr = gradient{black, stops}
 	}
 
 	g = NewGrid(o.w, o.h, o.wrap)
