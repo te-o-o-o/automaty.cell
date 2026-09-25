@@ -269,11 +269,18 @@
   </fieldset>
 
   <fieldset>
-    <legend>{{.T.grid}}</legend>
-    <label>{{.T.width}} <input name="w" type="number" min="30" max="{{.MaxSide}}" step="50" value="380"></label>
-    <label>{{.T.height}} <input name="h" type="number" min="30" max="{{.MaxSide}}" step="50" value="380"></label>
-    <label>{{.T.scale}} <input name="scale" type="number" min="1" max="{{.MaxScale}}" value="2"></label>
-    <label class="check" style="align-self:end"><input name="wrap" type="checkbox" checked> {{.T.wrap}}</label>
+    <legend>{{.T.colours}}</legend>
+    <label class="wide">{{.T.palette}}
+      <select name="palette">
+        {{range .Palettes}}<option data-gradient="{{.CSS}}"{{if eq .Name "age"}} selected{{end}}>{{.Name}}</option>{{end}}
+      </select>
+      <span id="palette-preview" aria-hidden="true"></span>
+    </label>
+    <label class="check wide"><input type="checkbox" id="custom"> {{.T.customGradient}}</label>
+    <div class="wide" data-custom>
+      <div id="colors" class="colors"></div>
+      <div class="row"><button type="button" id="color-add">{{.T.addColour}}</button><button type="button" id="color-remove">{{.T.removeColour}}</button></div>
+    </div>
   </fieldset>
 
   <fieldset>
@@ -307,18 +314,11 @@
   </fieldset>
 
   <fieldset>
-    <legend>{{.T.colours}}</legend>
-    <label class="wide">{{.T.palette}}
-      <select name="palette">
-        {{range .Palettes}}<option data-gradient="{{.CSS}}"{{if eq .Name "age"}} selected{{end}}>{{.Name}}</option>{{end}}
-      </select>
-      <span id="palette-preview" aria-hidden="true"></span>
-    </label>
-    <label class="check wide"><input type="checkbox" id="custom"> {{.T.customGradient}}</label>
-    <div class="wide" data-custom>
-      <div id="colors" class="colors"></div>
-      <div class="row"><button type="button" id="color-add">{{.T.addColour}}</button><button type="button" id="color-remove">{{.T.removeColour}}</button></div>
-    </div>
+    <legend>{{.T.grid}}</legend>
+    <label>{{.T.width}} <input name="w" type="number" min="30" max="{{.MaxSide}}" step="50" value="380"></label>
+    <label>{{.T.height}} <input name="h" type="number" min="30" max="{{.MaxSide}}" step="50" value="380"></label>
+    <label>{{.T.scale}} <input name="scale" type="number" min="1" max="{{.MaxScale}}" value="2"></label>
+    <label class="check" style="align-self:end"><input name="wrap" type="checkbox" checked> {{.T.wrap}}</label>
   </fieldset>
 </form>
 
