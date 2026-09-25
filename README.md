@@ -80,6 +80,15 @@ aussi sans couture en mosaïque) :
 ./automaty.cell -cyclic -shape disc -gens 120 -pingpong -o boucle.gif
 ```
 
+Mapping sur une forme réelle : un masque (silhouette blanche sur noir, ou
+logo détouré) confine l'automate, et un ZIP de PNG se charge dans les
+logiciels de mapping vidéo :
+
+```
+./automaty.cell -rule belzhab -mask facade.png -density 0.5 -gens 150 -palette cyber -o facade.png
+./automaty.cell -cyclic -mask facade.png -gens 40 -pingpong -o facade.zip
+```
+
 Dégradé personnalisé :
 
 ```
@@ -139,8 +148,9 @@ au pire), GIF de 80 millions de pixels (environ 80 Mo), 2 rendus à la fois.
 | `-neighborhood` | `vonneumann` | Cyclique : `moore` (carré) ou `vonneumann` (losange) |
 | `-radius` | `1` | Cyclique : rayon du voisinage |
 | `-delay` | `5` | Délai entre images du GIF, en 1/100 s |
-| `-pingpong` | `false` | GIF joué à l'endroit puis à l'envers : une boucle sans saut |
-| `-o` | `out.png` | Fichier de sortie : `.gif` produit une animation, sinon un PNG de la dernière génération |
+| `-pingpong` | `false` | GIF ou ZIP joué à l'endroit puis à l'envers : une boucle sans saut |
+| `-mask` | | Image PNG ou JPEG : la vie reste dans ses zones claires (ou opaques si elle a de la transparence), du début à la fin |
+| `-o` | `out.png` | Fichier de sortie : `.png` (dernière génération), `.gif` (animation) ou `.zip` (un PNG par génération, pour Resolume, MadMapper, TouchDesigner…) |
 | `-serve` | | Sert la page web sur cette adresse (`:8080`) au lieu d'écrire un fichier |
 
 Chaque état est placé sur le dégradé :

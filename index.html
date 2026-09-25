@@ -316,6 +316,9 @@
         <option value="stripes">{{.T.shapeStripes}}</option>
       </select>
     </label>
+    <label class="wide" title="{{.T.maskHint}}">{{.T.mask}}
+      <span class="row"><input type="file" id="mask" accept="image/png,image/jpeg"><button type="button" id="mask-clear" aria-label="{{.T.clearMask}}" title="{{.T.clearMask}}">×</button></span>
+    </label>
     <label class="wide" data-mode="rule">{{.T.density}} : <output id="density-out">0.3</output>
       <input name="density" type="range" min="0" max="1" step="0.01" value="0.3">
     </label>
@@ -353,6 +356,7 @@
     <code id="cmdline"></code>
     <button type="button" id="copy">{{.T.copyCommand}}</button>
     <button type="button" id="link">{{.T.copyLink}}</button>
+    <button type="button" id="zip" title="{{.T.framesZipHint}}">{{.T.framesZip}}</button>
     <a id="download" download>{{.T.download}}</a>
   </div>
 </section>
@@ -423,6 +427,8 @@ function options() {
 function commandLine(opts) {
   const quote = v => /^[\w.\/-]+$/.test(v) ? v : `'${v}'`;
   const args = opts.filter(([, , isDefault]) => !isDefault).map(([k, v]) => `-${k}=${quote(v)}`);
+  const mask = $('mask').files[0];
+  if (mask) args.push(`-mask=${quote(mask.name)}`); // a local file: kept out of the URL
   return ['automaty.cell', ...args, `-o out.${format()}`].join(' ');
 }
 
@@ -452,6 +458,15 @@ function applyParams(entries) {
 }
 
 let controller, timer;
+// request asks the server for a render; with a mask image, as an upload.
+function request(params, signal) {
+  const mask = $('mask').files[0];
+  if (!mask) return fetch('/render?' + params, { signal });
+  const body = new FormData();
+  body.append('mask', mask);
+  return fetch('/render?' + params, { method: 'POST', body, signal });
+}
+
 async function render() {
   clearTimeout(timer);
   const opts = options();
@@ -465,7 +480,7 @@ async function render() {
   controller = new AbortController();
   $('status').textContent = T.jsRendering;
   try {
-    const res = await fetch('/render?' + query(opts, false), { signal: controller.signal });
+    const res = await request(query(opts, false), controller.signal);
     if (!res.ok) throw new Error(await res.text());
     const url = URL.createObjectURL(await res.blob());
     URL.revokeObjectURL($('img').src);
@@ -535,6 +550,27 @@ $('dice').addEventListener('click', () => {
 $('copy').addEventListener('click', () => navigator.clipboard.writeText($('cmdline').textContent));
 $('link').addEventListener('click', () => navigator.clipboard.writeText(location.href));
 $('surprise').addEventListener('click', surprise);
+$('mask-clear').addEventListener('click', () => { $('mask').value = ''; changed(); });
+// Every generation as a PNG in a ZIP, for video mapping tools.
+$('zip').addEventListener('click', async () => {
+  const params = query(options(), false);
+  params.set('format', 'zip');
+  $('status').textContent = T.jsRendering;
+  try {
+    const res = await request(params);
+    if (!res.ok) throw new Error(await res.text());
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(await res.blob());
+    a.download = 'automaty.cell.zip';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  } catch (err) {
+    $('error').hidden = false;
+    $('error').textContent = err.message;
+  } finally {
+    $('status').textContent = '';
+  }
+});
 $('color-add').addEventListener('click', () => {
   const extra = ['#3ef3ff', '#9dff3e', '#ff8a3d', '#7b5cff', '#ffffff', '#ff3b3b'];
   setColors([...colors(), extra[colors().length % extra.length]]);

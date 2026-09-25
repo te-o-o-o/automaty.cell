@@ -37,6 +37,7 @@ func serve(addr string) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", indexHandler)
 	mux.HandleFunc("GET /render", handleRender)
+	mux.HandleFunc("POST /render", handleRender) // with a mask image
 	mux.HandleFunc("GET /surprise", handleSurprise)
 
 	log.Printf("automaty.cell: listening on %s", addr)
@@ -74,6 +75,14 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 // replies with the image.
 func handleRender(w http.ResponseWriter, r *http.Request) {
 	o, err := parseQuery(r)
+	if err == nil && r.Method == http.MethodPost { // a mask image, as multipart "mask"
+		r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
+		var f io.ReadCloser
+		if f, _, err = r.FormFile("mask"); err == nil {
+			o.maskData, err = io.ReadAll(f)
+			f.Close()
+		}
+	}
 	if err == nil {
 		err = checkLimits(o)
 	}
@@ -93,9 +102,14 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.Header().Set("Content-Type", "image/png")
-	if o.gif {
+	switch {
+	case o.gif:
 		w.Header().Set("Content-Type", "image/gif")
+	case o.zip:
+		w.Header().Set("Content-Type", "application/zip")
+		w.Header().Set("Content-Disposition", `attachment; filename="automaty.cell.zip"`)
+	default:
+		w.Header().Set("Content-Type", "image/png")
 	}
 	w.Write(buf.Bytes())
 }
@@ -107,14 +121,17 @@ func parseQuery(r *http.Request) (*options, error) {
 	case "", "png":
 	case "gif":
 		o.gif = true
+	case "zip":
+		o.zip = true
 	default:
-		return nil, fmt.Errorf("unknown format %q (want png or gif)", q.Get("format"))
+		return nil, fmt.Errorf("unknown format %q (want png, gif or zip)", q.Get("format"))
 	}
 	q.Del("format")
 
 	var args []string
 	for k, vs := range q {
-		if k == "o" || k == "serve" || k == "list-rules" {
+		// mask is a path: the server must never read its own files for a visitor.
+		if k == "o" || k == "serve" || k == "list-rules" || k == "mask" {
 			return nil, fmt.Errorf("option %q is CLI only", k)
 		}
 		for _, v := range vs {
@@ -139,7 +156,7 @@ func checkLimits(o *options) error {
 		return fmt.Errorf("at most %d generations here", maxGens)
 	case o.w*o.h*o.gens > maxWork:
 		return errors.New("too much work for the web page: lower the grid size or generations (or use the CLI)")
-	case o.gif && o.w*o.h*o.scale*o.scale*o.gens > maxPixels:
+	case (o.gif || o.zip) && o.w*o.h*o.scale*o.scale*o.gens > maxPixels:
 		return errors.New("GIF too large for the web page: lower the grid size, scale or generations (or use the CLI)")
 	}
 	return nil

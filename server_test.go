@@ -1,11 +1,16 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
 	"image/gif"
+	"image/png"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -178,5 +183,120 @@ func TestPingPong(t *testing.T) {
 	g, err := gif.DecodeAll(&buf)
 	if err != nil || len(g.Image) != 8 {
 		t.Fatalf("frames: %d, %v", len(g.Image), err)
+	}
+}
+
+// maskPNG returns a w×h PNG whose left half is "inside": white on black, or
+// opaque on transparent.
+func maskPNG(w, h int, transparent bool) []byte {
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			switch {
+			case x < w/2 && transparent:
+				img.Set(x, y, color.RGBA{0, 0, 0, 255}) // opaque, even if dark
+			case x < w/2:
+				img.Set(x, y, color.White)
+			case !transparent:
+				img.Set(x, y, color.Black)
+			} // else left transparent
+		}
+	}
+	var buf bytes.Buffer
+	png.Encode(&buf, img)
+	return buf.Bytes()
+}
+
+// A mask keeps its inside (light, or opaque when the image has transparency),
+// scaled to the grid, and cells outside it stay dead as the automaton runs.
+func TestMask(t *testing.T) {
+	for _, transparent := range []bool{false, true} {
+		inside, err := loadMask(maskPNG(4, 2, transparent), 8, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := []bool{true, true, true, true, false, false, false, false}
+		if !slices.Equal(inside[:8], want) || !slices.Equal(inside[8:], want) {
+			t.Errorf("transparent=%v: %v", transparent, inside)
+		}
+	}
+	if _, err := loadMask([]byte("not an image"), 8, 2); err == nil {
+		t.Error("garbage mask: want an error")
+	}
+
+	var o options
+	newFlagSet(&o).Parse([]string{"-w=40", "-h=20", "-density=0.5", "-rule=B2/S"})
+	o.maskData = maskPNG(40, 20, false)
+	g, step, _, err := o.setup()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 20; i++ {
+		g = step(g)
+	}
+	live := 0
+	for y := 0; y < 20; y++ {
+		for x := 0; x < 40; x++ {
+			if g.Cells[y*40+x] != 0 {
+				if x >= 20 {
+					t.Fatalf("(%d,%d) alive outside the mask", x, y)
+				}
+				live++
+			}
+		}
+	}
+	if live == 0 {
+		t.Error("nothing alive inside the mask")
+	}
+}
+
+// A ZIP holds one PNG per generation, named in order, and ping-pong replays
+// them backward.
+func TestZip(t *testing.T) {
+	var o options
+	newFlagSet(&o).Parse([]string{"-w=10", "-h=10", "-gens=3", "-pingpong"})
+	o.zip = true
+	var buf bytes.Buffer
+	if err := o.generate(&buf); err != nil {
+		t.Fatal(err)
+	}
+	z, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, f := range z.File {
+		names = append(names, f.Name)
+		r, _ := f.Open()
+		if _, err := png.Decode(r); err != nil {
+			t.Errorf("%s: %v", f.Name, err)
+		}
+	}
+	if want := []string{"frame00001.png", "frame00002.png", "frame00003.png", "frame00004.png"}; !slices.Equal(names, want) {
+		t.Errorf("files %v, want %v", names, want)
+	}
+}
+
+// On the web, a mask comes as an uploaded image, never as a path the server
+// would read; ZIPs come back as attachments.
+func TestRenderMaskAndZip(t *testing.T) {
+	rec := httptest.NewRecorder()
+	handleRender(rec, httptest.NewRequest("GET", "/render?mask=/etc/passwd", nil))
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("mask path in the URL: status %d, want 400", rec.Code)
+	}
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	fw, _ := mw.CreateFormFile("mask", "mask.png")
+	fw.Write(maskPNG(20, 20, false))
+	mw.Close()
+	for _, format := range []string{"png", "zip"} {
+		req := httptest.NewRequest("POST", "/render?w=20&h=20&gens=3&format="+format, bytes.NewReader(body.Bytes()))
+		req.Header.Set("Content-Type", mw.FormDataContentType())
+		rec = httptest.NewRecorder()
+		handleRender(rec, req)
+		if want := map[string]string{"png": "image/png", "zip": "application/zip"}[format]; rec.Code != http.StatusOK || rec.Header().Get("Content-Type") != want {
+			t.Errorf("POST %s: status %d, type %q: %s", format, rec.Code, rec.Header().Get("Content-Type"), rec.Body)
+		}
 	}
 }
