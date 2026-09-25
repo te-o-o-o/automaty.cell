@@ -18,10 +18,10 @@ func TestGliderMoves(t *testing.T) {
 	for _, p := range glider {
 		want.Set(p[0]+1, p[1]+1, true)
 	}
-	for i := range g.Age {
-		if (g.Age[i] > 0) != (want.Age[i] > 0) {
+	for i := range g.Cells {
+		if (g.Cells[i] > 0) != (want.Cells[i] > 0) {
 			t.Fatalf("after 4 gens, cell (%d,%d) alive = %v, want %v",
-				i%10, i/10, g.Age[i] > 0, want.Age[i] > 0)
+				i%10, i/10, g.Cells[i] > 0, want.Cells[i] > 0)
 		}
 	}
 }
@@ -34,12 +34,12 @@ func TestBlockAges(t *testing.T) {
 	}
 	for i := 0; i < 300; i++ {
 		g = g.Step(Life)
-		if i == 2 && g.Age[2*6+2] != 4 {
-			t.Fatalf("age after 3 gens = %d, want 4", g.Age[2*6+2])
+		if i == 2 && g.Cells[2*6+2] != 4 {
+			t.Fatalf("age after 3 gens = %d, want 4", g.Cells[2*6+2])
 		}
 	}
-	if g.Age[2*6+2] != 255 {
-		t.Fatalf("age after 300 gens = %d, want 255 (saturated)", g.Age[2*6+2])
+	if g.Cells[2*6+2] != 255 {
+		t.Fatalf("age after 300 gens = %d, want 255 (saturated)", g.Cells[2*6+2])
 	}
 }
 
@@ -56,7 +56,7 @@ func TestBorders(t *testing.T) {
 		}
 		g = g.Step(Life)
 		alive := 0
-		for _, a := range g.Age {
+		for _, a := range g.Cells {
 			if a > 0 {
 				alive++
 			}

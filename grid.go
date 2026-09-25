@@ -38,22 +38,22 @@ var Presets = []struct{ Name, Rule string }{
 type Grid struct {
 	W, H int
 	Wrap bool // true: toroidal edges, false: cells beyond the edge are dead
-	// Age is row-major, len W*H: 0 = dead, n = alive for n generations
-	// (saturates at 255).
-	Age []uint8
+	// Cells is row-major, len W*H. For B/S rules a cell holds its age:
+	// 0 = dead, n = alive for n generations (saturates at 255).
+	Cells []uint8
 }
 
 func NewGrid(w, h int, wrap bool) *Grid {
-	return &Grid{W: w, H: h, Wrap: wrap, Age: make([]uint8, w*h)}
+	return &Grid{W: w, H: h, Wrap: wrap, Cells: make([]uint8, w*h)}
 }
 
-func (g *Grid) Alive(x, y int) bool { return g.Age[y*g.W+x] > 0 }
+func (g *Grid) Alive(x, y int) bool { return g.Cells[y*g.W+x] > 0 }
 
 // Set makes (x, y) a newborn cell, or kills it.
 func (g *Grid) Set(x, y int, alive bool) {
-	g.Age[y*g.W+x] = 0
+	g.Cells[y*g.W+x] = 0
 	if alive {
-		g.Age[y*g.W+x] = 1
+		g.Cells[y*g.W+x] = 1
 	}
 }
 
@@ -61,10 +61,10 @@ func (g *Grid) Set(x, y int, alive bool) {
 // The same seed always gives the same grid.
 func (g *Grid) Randomize(seed int64, density float64) {
 	r := rand.New(rand.NewSource(seed))
-	for i := range g.Age {
-		g.Age[i] = 0
+	for i := range g.Cells {
+		g.Cells[i] = 0
 		if r.Float64() < density {
-			g.Age[i] = 1
+			g.Cells[i] = 1
 		}
 	}
 }
@@ -97,11 +97,11 @@ func (g *Grid) Step(r Rule) *Grid {
 	for y := 0; y < g.H; y++ {
 		for x := 0; x < g.W; x++ {
 			n, i := g.neighbours(x, y), y*g.W+x
-			switch age := g.Age[i]; {
+			switch age := g.Cells[i]; {
 			case age > 0 && r.Survive[n]:
-				next.Age[i] = max(age, age+1) // +1, saturating at 255
+				next.Cells[i] = max(age, age+1) // +1, saturating at 255
 			case age == 0 && r.Birth[n]:
-				next.Age[i] = 1
+				next.Cells[i] = 1
 			}
 		}
 	}

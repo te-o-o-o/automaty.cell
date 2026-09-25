@@ -44,7 +44,7 @@ func Render(g *Grid, scale int, pal color.Palette) *image.Paletted {
 	last := uint8(len(pal) - 1)
 	for y := 0; y < g.H; y++ {
 		for x := 0; x < g.W; x++ {
-			idx := min(g.Age[y*g.W+x], last)
+			idx := min(g.Cells[y*g.W+x], last)
 			if idx == 0 {
 				continue // index 0 is the zero value
 			}
