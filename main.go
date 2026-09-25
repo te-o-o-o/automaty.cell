@@ -19,6 +19,7 @@ import (
 type options struct {
 	w, h, scale, gens         int
 	seed                      int64
+	symmetry                  int
 	density                   float64
 	rule                      string
 	wrap                      bool
@@ -40,6 +41,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.IntVar(&o.gens, "gens", 100, "number of generations to run")
 	fs.Int64Var(&o.seed, "seed", 1, "random seed")
 	fs.Float64Var(&o.density, "density", 0.3, "initial fraction of live cells")
+	fs.IntVar(&o.symmetry, "symmetry", 1, "mirror the random start: 1 (none), 2, 4 or 8 (8 needs a square grid)")
 	fs.StringVar(&o.out, "o", "out.png", "output file")
 	fs.StringVar(&o.rule, "rule", "B3/S23", "rule in B/S (B3/S23) or Generations S/B/C (345/2/4) notation, or a preset name (see -list-rules)")
 	fs.BoolVar(&o.listRules, "list-rules", false, "list preset rules and exit")
@@ -86,8 +88,36 @@ func main() {
 // generate runs the automaton and writes a GIF of every generation, or a PNG
 // of the last one, to w.
 func (o *options) generate(w io.Writer) error {
+	g, step, pal, err := o.setup()
+	if err != nil {
+		return err
+	}
+	if o.gif {
+		// ponytail: all frames held in memory (W*H*scale² bytes each), stream if it gets too big
+		frames := []*image.Paletted{Render(g, o.scale, pal)}
+		for i := 1; i < o.gens; i++ {
+			g = step(g)
+			frames = append(frames, Render(g, o.scale, pal))
+		}
+		return WriteGIF(w, frames, o.delay)
+	}
+	for i := 1; i < o.gens; i++ {
+		g = step(g)
+	}
+	return WritePNG(w, Render(g, o.scale, pal))
+}
+
+// setup checks the options and returns the starting grid, the function that
+// computes the next generation, and the palette.
+func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, err error) {
 	if o.w < 1 || o.h < 1 || o.scale < 1 || o.gens < 1 {
-		return errors.New("want w, h, scale and gens >= 1")
+		return nil, nil, nil, errors.New("want w, h, scale and gens >= 1")
+	}
+	switch {
+	case o.symmetry != 1 && o.symmetry != 2 && o.symmetry != 4 && o.symmetry != 8:
+		return nil, nil, nil, fmt.Errorf("symmetry %d: want 1, 2, 4 or 8", o.symmetry)
+	case o.symmetry == 8 && o.w != o.h:
+		return nil, nil, nil, errors.New("symmetry 8 needs a square grid (w = h)")
 	}
 	rule := o.rule
 	for _, p := range Presets {
@@ -98,20 +128,18 @@ func (o *options) generate(w io.Writer) error {
 
 	gr, ok := gradients[o.palette]
 	if !ok {
-		return fmt.Errorf("unknown palette %q (want age, bw, fire, ocean, viridis or mono)", o.palette)
+		return nil, nil, nil, fmt.Errorf("unknown palette %q (want age, bw, fire, ocean, viridis or mono)", o.palette)
 	}
 	if o.palFrom != "" || o.palTo != "" {
 		from, err1 := parseHex(o.palFrom)
 		to, err2 := parseHex(o.palTo)
 		if err := errors.Join(err1, err2); err != nil {
-			return fmt.Errorf("-palette-from and -palette-to: %w", err)
+			return nil, nil, nil, fmt.Errorf("-palette-from and -palette-to: %w", err)
 		}
 		gr = gradient{black, []color.RGBA{from, to}}
 	}
 
-	g := NewGrid(o.w, o.h, o.wrap)
-	var step func(*Grid) *Grid
-	var pal color.Palette
+	g = NewGrid(o.w, o.h, o.wrap)
 	if o.cyclic {
 		c := Cyclic{States: o.states, Threshold: o.threshold, Radius: o.radius}
 		switch o.neighborhood {
@@ -119,10 +147,10 @@ func (o *options) generate(w io.Writer) error {
 		case "vonneumann":
 			c.VonNeumann = true
 		default:
-			return fmt.Errorf("unknown neighborhood %q (want moore or vonneumann)", o.neighborhood)
+			return nil, nil, nil, fmt.Errorf("unknown neighborhood %q (want moore or vonneumann)", o.neighborhood)
 		}
 		if c.States < 2 || c.States > 256 || c.Threshold < 1 || c.Radius < 1 || c.Radius >= min(o.w, o.h) {
-			return errors.New("cyclic: want 2 <= states <= 256, threshold >= 1, 1 <= radius < grid size")
+			return nil, nil, nil, errors.New("cyclic: want 2 <= states <= 256, threshold >= 1, 1 <= radius < grid size")
 		}
 		g.RandomizeStates(o.seed, c.States)
 		step = func(g *Grid) *Grid { return g.StepCyclic(c) }
@@ -131,7 +159,7 @@ func (o *options) generate(w io.Writer) error {
 	} else {
 		r, err := ParseRule(rule)
 		if err != nil {
-			return err
+			return nil, nil, nil, err
 		}
 		g.Randomize(o.seed, o.density)
 		step = func(g *Grid) *Grid { return g.Step(r) }
@@ -146,19 +174,8 @@ func (o *options) generate(w io.Writer) error {
 		}
 	}
 
-	if o.gif {
-		// ponytail: all frames held in memory (W*H*scale² bytes each), stream if it gets too big
-		frames := []*image.Paletted{Render(g, o.scale, pal)}
-		for i := 1; i < o.gens; i++ {
-			g = step(g)
-			frames = append(frames, Render(g, o.scale, pal))
-		}
-		return WriteGIF(w, frames, o.delay)
-	}
-	for i := 1; i < o.gens; i++ {
-		g = step(g)
-	}
-	return WritePNG(w, Render(g, o.scale, pal))
+	g.Mirror(o.symmetry)
+	return g, step, pal, nil
 }
 
 func fail(code int, err error) {

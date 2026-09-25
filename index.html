@@ -144,6 +144,14 @@
     <label class="wide">Seed
       <span class="row"><input name="seed" type="number" value="1"><button type="button" id="dice" title="Seed aléatoire">🎲</button></span>
     </label>
+    <label class="wide">Symétrie
+      <select name="symmetry">
+        <option value="1">Aucune</option>
+        <option value="2">Miroir (2)</option>
+        <option value="4">Quadruple (4)</option>
+        <option value="8">Kaléidoscope (8, grille carrée)</option>
+      </select>
+    </label>
     <label class="wide" data-mode="rule">Densité : <output id="density-out">0.3</output>
       <input name="density" type="range" min="0" max="1" step="0.01" value="0.3">
     </label>

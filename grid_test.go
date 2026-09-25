@@ -129,6 +129,31 @@ func TestCyclic(t *testing.T) {
 	}
 }
 
+// A mirrored start stays symmetric as it evolves, with any rule.
+func TestMirror(t *testing.T) {
+	const n = 20
+	for _, sym := range []int{2, 4, 8} {
+		for _, rule := range []string{"B3/S23", "2/23/8"} {
+			r, _ := ParseRule(rule)
+			g := NewGrid(n, n, true)
+			g.Randomize(1, 0.4)
+			g.Mirror(sym)
+			for i := 0; i < 30; i++ {
+				g = g.Step(r)
+			}
+			at := func(x, y int) uint8 { return g.Cells[y*n+x] }
+			for y := 0; y < n; y++ {
+				for x := 0; x < n; x++ {
+					v := at(x, y)
+					if v != at(n-1-x, y) || sym >= 4 && v != at(x, n-1-y) || sym == 8 && v != at(y, x) {
+						t.Fatalf("symmetry %d, rule %s: (%d,%d) breaks symmetry", sym, rule, x, y)
+					}
+				}
+			}
+		}
+	}
+}
+
 func TestParseRule(t *testing.T) {
 	r, err := ParseRule("s23/b36")
 	if err != nil || r != (Rule{Birth: [9]bool{3: true, 6: true}, Survive: [9]bool{2: true, 3: true}}) {

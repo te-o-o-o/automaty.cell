@@ -94,6 +94,27 @@ func (g *Grid) RandomizeStates(seed int64, n int) {
 	}
 }
 
+// Mirror makes the grid symmetric by copying one part onto the others:
+// n = 2 mirrors left/right, 4 also top/bottom, 8 also across the diagonal
+// (square grids only). Rules are symmetric, so the pattern stays symmetric.
+func (g *Grid) Mirror(n int) {
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			sx, sy := x, y // the source cell, which keeps its own value
+			if n >= 2 {
+				sx = min(x, g.W-1-x)
+			}
+			if n >= 4 {
+				sy = min(y, g.H-1-y)
+			}
+			if n >= 8 {
+				sx, sy = min(sx, sy), max(sx, sy)
+			}
+			g.Cells[y*g.W+x] = g.Cells[sy*g.W+sx]
+		}
+	}
+}
+
 // neighbours counts the cells within radius of (x, y) for which match is
 // true, in a Moore (square) or Von Neumann (diamond) neighbourhood.
 func (g *Grid) neighbours(x, y, radius int, vonNeumann bool, match func(uint8) bool) int {
