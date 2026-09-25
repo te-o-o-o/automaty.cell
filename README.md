@@ -62,6 +62,14 @@ moins `-threshold` voisins sont déjà à k+1 :
 ./cellgen -cyclic -states 6 -threshold 2 -radius 2 -neighborhood vonneumann -gens 400 -scale 3 -o labyrinthe.png
 ```
 
+Départ symétrique (mandalas et kaléidoscopes) : le hasard initial est recopié
+en miroir, et comme les règles sont symétriques, le motif le reste :
+
+```
+./cellgen -rule belzhab -symmetry 8 -gens 150 -seed 5 -palette fire -o mandala.png
+./cellgen -rule starwars -symmetry 8 -gens 120 -seed 9 -palette viridis -o papillon.png
+```
+
 Dégradé personnalisé :
 
 ```
@@ -82,7 +90,15 @@ Lister les règles nommées :
 
 Puis ouvrir http://localhost:8080 : chaque option a son champ, le rendu se
 recalcule à chaque changement, et la commande CLI équivalente s'affiche sous
-l'image. La page utilise le même moteur que le CLI (même image au pixel près),
+l'image.
+
+- **✨ Surprends-moi** tire au hasard une règle (B/S, Generations ou cyclique),
+  une palette, une seed et une symétrie, en écartant les automates qui
+  meurent, se figent ou restent du bruit (testés sur une petite grille avant).
+- **Copier le lien** : l'URL de la page contient les réglages, il suffit de
+  l'envoyer pour que l'autre voie la même création.
+
+La page utilise le même moteur que le CLI (même image au pixel près),
 avec des limites pour rester utilisable en ligne : grille de 400×400 au plus,
 échelle 8, 2000 générations, GIF de 200 millions de pixels, 2 rendus à la fois.
 
@@ -96,6 +112,7 @@ avec des limites pour rester utilisable en ligne : grille de 400×400 au plus,
 | `-scale` | `4` | Pixels par cellule |
 | `-gens` | `100` | Nombre de générations, l'état initial compris |
 | `-seed` | `1` | Graine aléatoire : même graine, même résultat |
+| `-symmetry` | `1` | Départ en miroir : `1` (aucun), `2`, `4` ou `8` (grille carrée) |
 | `-density` | `0.3` | Proportion initiale de cellules vivantes (ignorée en cyclique : états uniformes) |
 | `-wrap` | `true` | Bords toriques ; `-wrap=false` pour des bords morts |
 | `-palette` | `age` | Dégradé : `age`, `bw`, `fire`, `ocean`, `viridis`, `mono` |
