@@ -17,11 +17,24 @@ func main() {
 	seed := flag.Int64("seed", 1, "random seed")
 	density := flag.Float64("density", 0.3, "initial fraction of live cells")
 	out := flag.String("o", "out.png", "output file")
-	rule := flag.String("rule", "B3/S23", "rule in B/S notation")
+	rule := flag.String("rule", "B3/S23", "rule in B/S notation, or a preset name (see -list-rules)")
+	listRules := flag.Bool("list-rules", false, "list preset rules and exit")
 	wrap := flag.Bool("wrap", true, "toroidal edges; -wrap=false makes cells beyond the edge dead")
 	delay := flag.Int("delay", 5, "GIF frame delay in 1/100 s")
 	palette := flag.String("palette", "age", "colour palette: age or bw")
 	flag.Parse()
+
+	if *listRules {
+		for _, p := range Presets {
+			fmt.Printf("%-18s %s\n", p.Name, p.Rule)
+		}
+		return
+	}
+	for _, p := range Presets {
+		if strings.EqualFold(*rule, p.Name) {
+			*rule = p.Rule
+		}
+	}
 
 	r, err := ParseRule(*rule)
 	if err != nil {

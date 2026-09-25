@@ -19,6 +19,22 @@ var Life = Rule{
 	Survive: [9]bool{2: true, 3: true},
 }
 
+// Presets are well-known rules, usable by name with -rule.
+var Presets = []struct{ Name, Rule string }{
+	{"life", "B3/S23"},
+	{"highlife", "B36/S23"},
+	{"daynight", "B3678/S34678"},
+	{"diamoeba", "B5678/S45678"},
+	{"seeds", "B2/S"},
+	{"maze", "B3/S12345"},
+	{"coral", "B3/S45678"},
+	{"anneal", "B4678/S35678"},
+	{"replicator", "B1357/S1357"},
+	{"morley", "B368/S245"},
+	{"2x2", "B36/S125"},
+	{"lifewithoutdeath", "B3/S012345678"},
+}
+
 type Grid struct {
 	W, H int
 	Wrap bool // true: toroidal edges, false: cells beyond the edge are dead
