@@ -135,20 +135,29 @@
   .colors input { width: 100%; height: 30px; padding: 1px; }
   #color-add, #color-remove { flex: 1; }
 
+  /* The warning sits in the header, between the name and the pickers, on
+     one line as tall as them; the full text is in its tooltip. */
   #warning {
+    flex: 1;
+    min-width: 0;
+    align-self: stretch;
     display: flex;
-    gap: 16px;
+    gap: 10px;
     align-items: center;
-    padding: 10px 14px;
+    padding: 0 4px 0 10px;
     background: var(--bg);
-    border: 3px solid var(--highlight);
-    box-shadow: 5px 5px 0 var(--primary);
+    border: 2px solid var(--highlight);
+    box-shadow: 3px 3px 0 var(--primary);
   }
-  #warning p { margin: 0; flex: 1; }
-  #warning strong { display: block; margin-bottom: 4px; color: var(--highlight); }
-  #warning button { flex-shrink: 0; background: var(--highlight); color: var(--primary-text); border: 0; box-shadow: 3px 3px 0 var(--primary); padding: 12px 14px; }
+  #warning p { margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #warning strong { margin-right: 8px; color: var(--highlight); }
+  #warning button { flex-shrink: 0; background: var(--highlight); color: var(--primary-text); border: 0; padding: 4px 8px; }
+  @media (max-width: 800px) {
+    header { flex-wrap: wrap; }
+    #warning { order: 1; flex-basis: 100%; min-height: 36px; }
+  }
 
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
   header h1 { margin: 0; font-size: 18px; }
   header label { flex-direction: row; align-items: center; gap: 8px; }
   .pickers { display: flex; gap: 14px; }
@@ -184,7 +193,6 @@
   #warning strong,
   #warning button,
   .powers span { font-family: var(--pixel); font-size: 9px; font-weight: 400; text-transform: uppercase; line-height: 1.6; }
-  #warning strong { font-size: 11px; }
   #surprise { font-family: var(--pixel); font-size: 12px; font-weight: 400; box-shadow: 4px 4px 0 var(--highlight); }
   #cmd code { font: var(--font); color: var(--highlight); }
   label input,
@@ -205,6 +213,10 @@
 <div class="page">
 <header>
   <h1>automaty.cell</h1>
+  <section id="warning" aria-label="{{.T.warningLabel}}" title="{{.T.warningText}}">
+    <p><strong>{{.T.warningLabel}}</strong>{{.T.warningShort}}</p>
+    <button type="button" id="warning-ok">{{.T.close}}</button>
+  </section>
   <div class="pickers">
     <label>{{.T.theme}}
       <select id="theme">
@@ -220,10 +232,6 @@
     </label>
   </div>
 </header>
-<section id="warning" aria-label="{{.T.warningLabel}}">
-  <p><strong>{{.T.warningTitle}}</strong>{{.T.warningText}}</p>
-  <button type="button" id="warning-ok">START</button>
-</section>
 
 <main>
 <form id="form" autocomplete="off">
@@ -535,10 +543,10 @@ for (const [id, def] of [['theme', 'bonbon'], ['lang', 'en']]) {
 }
 
 // The warning stays dismissed on later visits (when storage is available).
-try { if (localStorage.getItem('automaty.cell-warning-ok')) $('warning').hidden = true; } catch {}
+try { if (localStorage.getItem('automaty.cell-warning-closed')) $('warning').hidden = true; } catch {}
 $('warning-ok').addEventListener('click', () => {
   $('warning').hidden = true;
-  try { localStorage.setItem('automaty.cell-warning-ok', '1'); } catch {}
+  try { localStorage.setItem('automaty.cell-warning-closed', '1'); } catch {}
 });
 
 setColors(['#1a0033', '#ff3ea5', '#ffcc00']);
