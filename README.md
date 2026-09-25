@@ -1,168 +1,172 @@
 # automaty.cell
 
-Générateur d'images (PNG) et d'animations (GIF) à partir d'automates cellulaires 2D.
-Go 1.22+, stdlib uniquement.
+Procedural images (PNG), animations (GIF) and image sequences (ZIP) from 2D
+cellular automata, as a command-line tool and a web page.
+Go 1.22+, standard library only.
 
 ```
 go build -o automaty.cell .
 ```
 
-## Exemples
+## Examples
 
-Game of Life, 300 générations en GIF animé :
+Game of Life, 300 generations as an animated GIF:
 
 ```
 ./automaty.cell -rule B3/S23 -w 200 -h 200 -scale 4 -gens 300 -seed 42 -o life.gif
 ```
 
-Image fixe de la 200ᵉ génération de HighLife :
+A still of HighLife's 200th generation:
 
 ```
 ./automaty.cell -rule highlife -density 0.35 -gens 200 -o highlife.png
 ```
 
-Day & Night, animation plus lente (10/100 s par image) :
+Day & Night, slower animation (10/100 s per frame):
 
 ```
 ./automaty.cell -rule daynight -density 0.5 -w 120 -h 120 -scale 3 -gens 150 -delay 10 -o daynight.gif
 ```
 
-Labyrinthe, avec des bords morts au lieu d'une grille torique :
+A maze, with dead edges instead of a wrapping grid:
 
 ```
 ./automaty.cell -rule maze -density 0.1 -w 120 -h 120 -gens 300 -wrap=false -o maze.png
 ```
 
-Explosion de Seeds depuis quelques cellules, en noir et blanc :
+Seeds exploding from a few cells, in black and white:
 
 ```
 ./automaty.cell -rule seeds -density 0.02 -gens 60 -palette bw -o seeds.gif
 ```
 
-N'importe quelle règle au format B/S (notation Golly) fonctionne, pas seulement les presets :
+Any rule in B/S notation (as in Golly) works, not just the presets:
 
 ```
 ./automaty.cell -rule B35678/S5678 -density 0.5 -gens 100 -o custom.png
 ```
 
-Automate Generations (notation `S/B/C` : survie / naissance / nombre d'états) :
+Generations rules (`S/B/C` notation: survival / birth / number of states):
 
 ```
 ./automaty.cell -rule 345/2/4 -gens 200 -palette fire -o starwars.gif
 ./automaty.cell -rule brian -gens 150 -o brian.png
 ```
 
-Automate cyclique : une cellule à l'état k passe à k+1 (modulo `-states`) si au
-moins `-threshold` voisins sont déjà à k+1 :
+Cyclic automata: a cell in state k moves to k+1 (modulo `-states`) when at
+least `-threshold` neighbours are already in state k+1:
 
 ```
-./automaty.cell -cyclic -states 8 -threshold 5 -radius 3 -gens 400 -scale 3 -palette viridis -o spirales.png
+./automaty.cell -cyclic -states 8 -threshold 5 -radius 3 -gens 400 -scale 3 -palette viridis -o spirals.png
 ./automaty.cell -cyclic -states 14 -threshold 1 -neighborhood vonneumann -gens 500 -scale 3 -palette ocean -o cca.png
 ./automaty.cell -cyclic -states 3 -threshold 3 -gens 300 -scale 3 -o 313.png
-./automaty.cell -cyclic -states 6 -threshold 2 -radius 2 -neighborhood vonneumann -gens 400 -scale 3 -o labyrinthe.png
+./automaty.cell -cyclic -states 6 -threshold 2 -radius 2 -neighborhood vonneumann -gens 400 -scale 3 -o maze-spirals.png
 ```
 
-Départ symétrique (mandalas et kaléidoscopes) : le hasard initial est recopié
-en miroir, et comme les règles sont symétriques, le motif le reste :
+Symmetric starts (mandalas and kaleidoscopes): the random start is mirrored,
+and since the rules treat every direction alike, the pattern stays symmetric:
 
 ```
 ./automaty.cell -rule belzhab -symmetry 8 -gens 150 -seed 5 -palette fire -o mandala.png
-./automaty.cell -rule starwars -symmetry 8 -gens 120 -seed 9 -palette viridis -o papillon.png
+./automaty.cell -rule starwars -symmetry 8 -gens 120 -seed 9 -palette viridis -o butterfly.png
 ```
 
-Rotations (moulin à vent), formes de départ, et boucle aller-retour pour le
-mapping vidéo (avec les bords toriques par défaut, les images se raccordent
-aussi sans couture en mosaïque) :
+Rotations (pinwheels), start shapes, and a back-and-forth loop for video
+mapping (with the default wrapping edges, images also tile seamlessly):
 
 ```
-./automaty.cell -rule belzhab -symmetry r4 -seed 5 -gens 150 -palette cyber -o moulin.png
-./automaty.cell -rule belzhab -shape ring -seed 5 -gens 90 -palette candy -o anneau.png
-./automaty.cell -cyclic -shape disc -gens 120 -pingpong -o boucle.gif
+./automaty.cell -rule belzhab -symmetry r4 -seed 5 -gens 150 -palette cyber -o pinwheel.png
+./automaty.cell -rule belzhab -shape ring -seed 5 -gens 90 -palette candy -o ring.png
+./automaty.cell -cyclic -shape disc -gens 120 -pingpong -o loop.gif
 ```
 
-Mapping sur une forme réelle : un masque (silhouette blanche sur noir, ou
-logo détouré) confine l'automate, et un ZIP de PNG se charge dans les
-logiciels de mapping vidéo :
+Mapping onto a real shape: a mask (a white silhouette on black, or a cut-out
+logo) confines the automaton, and a ZIP of PNGs loads in video mapping tools:
 
 ```
 ./automaty.cell -rule belzhab -mask facade.png -density 0.5 -gens 150 -palette cyber -o facade.png
 ./automaty.cell -cyclic -mask facade.png -gens 40 -pingpong -o facade.zip
 ```
 
-Dégradé personnalisé :
+A custom gradient:
 
 ```
 ./automaty.cell -rule belzhab -gens 150 -colors 1a0033,ff3ea5,ffcc00,3ef3ff -o belzhab.png
 ```
 
-Lister les règles nommées :
+List the named rules:
 
 ```
 ./automaty.cell -list-rules
 ```
 
-## Page web
+## Web page
 
 ```
 ./automaty.cell -serve :8080
 ```
 
-Puis ouvrir http://localhost:8080 : chaque option a son champ, le rendu se
-recalcule à chaque changement, et la commande CLI équivalente s'affiche sous
-l'image.
+Then open http://localhost:8080: every option has its field, the image
+re-renders on every change, and the equivalent command line shows below it.
 
-- **? RANDOM** tire au hasard une règle (B/S, Generations ou cyclique), une
-  palette, une seed, une symétrie et une animation (GIF : vitesse, durée,
-  bords), en écartant les automates qui meurent, se figent ou restent du bruit
-  (testés sur une petite grille avant).
-- **Thème et langue** : sélecteurs en haut à droite. Thème `bonbon` (par
-  défaut) ou `arcade`, langue anglais (par défaut) ou français. Aussi par l'URL :
+- **? RANDOM** picks a rule (B/S, Generations or cyclic), colours, a seed, a
+  symmetry, a start shape and an animation (GIF: speed, length, edges,
+  back-and-forth), leaving out automata that die, freeze or stay noise (each
+  candidate is tried on a small grid first).
+- **Theme and language**: pickers at the top right. Theme `bonbon` (default)
+  or `arcade`, language English (default) or French. Also in the URL:
   `?theme=arcade&lang=fr`.
-- **Copy link** : l'URL de la page contient les réglages (et le thème, la
-  langue), il suffit de l'envoyer pour que l'autre voie la même création.
+- **Copy link**: the page's URL holds its settings (and theme and language):
+  send it and the other person sees the same creation. A mask, being a local
+  file, is not part of it.
+- **Frames (ZIP)**: every generation as a PNG, for Resolume, MadMapper,
+  TouchDesigner…
 
-La page utilise le même moteur que le CLI (même image au pixel près), avec des
-limites pour rester utilisable en ligne : grille de 500×500 au plus, échelle 8,
-2000 générations, 111 millions de cellules × générations (environ 1 s de calcul
-au pire), GIF de 80 millions de pixels (environ 80 Mo), 2 rendus à la fois.
+The page runs the same engine as the CLI (the same image, pixel for pixel),
+with limits to stay usable online: grids up to 500×500, scale 8, 2000
+generations, 111 million cells × generations (about 1 s of work at worst),
+GIFs of 80 million pixels (about 80 MB), masks of 10 MB, 2 renders at a time.
 
 ## Options
 
-| Flag | Défaut | Rôle |
+| Flag | Default | Meaning |
 |---|---|---|
-| `-rule` | `B3/S23` | Règle B/S (`B36/S23`, `b2/s`…), Generations S/B/C (`345/2/4`, `/2/3`…) ou nom de preset |
-| `-list-rules` | | Affiche les presets et quitte |
-| `-w`, `-h` | `380` | Taille de la grille en cellules |
-| `-scale` | `2` | Pixels par cellule |
-| `-gens` | `100` | Nombre de générations, l'état initial compris |
-| `-seed` | `1` | Graine aléatoire : même graine, même résultat |
-| `-symmetry` | `1` | Départ symétrique : `1` (aucun), miroirs `2`, `4`, `8`, rotations `r2` (demi-tour), `r4` (quarts de tour) ; `8` et `r4` demandent une grille carrée |
-| `-shape` | `all` | Zone de départ, morte ailleurs : `all`, `disc`, `ring`, `cross`, `frame`, `stripes` |
-| `-density` | `0.3` | Proportion initiale de cellules vivantes (ignorée en cyclique : états uniformes) |
-| `-wrap` | `true` | Bords toriques ; `-wrap=false` pour des bords morts |
-| `-palette` | `age` | Dégradé (`-h` les liste toutes) : `age`, `aurora`, `berry`, `bw`, `candy`, `cherry`, `cyber`, `dusk`, `fire`, `forest`, `gold`, `lagoon`, `lavender`, `lime`, `mint`, `mono`, `neon`, `ocean`, `peach`, `rainbow`, `sunset`, `toxic`, `viridis` |
-| `-colors` | | Dégradé personnalisé de 2 à 8 couleurs : `1a0033,ff3ea5,ffcc00` (remplace `-palette`) |
-| `-cyclic` | `false` | Automate cyclique au lieu de `-rule` |
-| `-states` | `14` | Cyclique : nombre d'états (2-256) |
-| `-threshold` | `1` | Cyclique : voisins à l'état suivant nécessaires pour avancer |
-| `-neighborhood` | `vonneumann` | Cyclique : `moore` (carré) ou `vonneumann` (losange) |
-| `-radius` | `1` | Cyclique : rayon du voisinage |
-| `-delay` | `5` | Délai entre images du GIF, en 1/100 s |
-| `-pingpong` | `false` | GIF ou ZIP joué à l'endroit puis à l'envers : une boucle sans saut |
-| `-mask` | | Image PNG ou JPEG : la vie reste dans ses zones claires (ou opaques si elle a de la transparence), du début à la fin |
-| `-o` | `out.png` | Fichier de sortie : `.png` (dernière génération), `.gif` (animation) ou `.zip` (un PNG par génération, pour Resolume, MadMapper, TouchDesigner…) |
-| `-serve` | | Sert la page web sur cette adresse (`:8080`) au lieu d'écrire un fichier |
+| `-rule` | `B3/S23` | B/S rule (`B36/S23`, `b2/s`…), Generations S/B/C rule (`345/2/4`, `/2/3`…) or preset name |
+| `-list-rules` | | Print the presets and exit |
+| `-w`, `-h` | `380` | Grid size in cells |
+| `-scale` | `2` | Pixels per cell |
+| `-gens` | `100` | Number of generations, the start included |
+| `-seed` | `1` | Random seed: same seed, same result |
+| `-symmetry` | `1` | Symmetric start: `1` (none), mirrors `2`, `4`, `8`, rotations `r2` (half turn), `r4` (quarter turns); `8` and `r4` need a square grid |
+| `-shape` | `all` | Start area, dead elsewhere: `all`, `disc`, `ring`, `cross`, `frame`, `stripes` |
+| `-density` | `0.3` | Initial share of live cells (unused in cyclic mode: states are uniform) |
+| `-wrap` | `true` | Wrapping (toroidal) edges; `-wrap=false` for dead edges |
+| `-palette` | `age` | Gradient (`-h` lists them all): `age`, `aurora`, `berry`, `bw`, `candy`, `cherry`, `cyber`, `dusk`, `fire`, `forest`, `gold`, `lagoon`, `lavender`, `lime`, `mint`, `mono`, `neon`, `ocean`, `peach`, `rainbow`, `sunset`, `toxic`, `viridis` |
+| `-colors` | | Custom gradient of 2 to 8 colours: `1a0033,ff3ea5,ffcc00` (replaces `-palette`) |
+| `-cyclic` | `false` | Cyclic automaton instead of `-rule` |
+| `-states` | `14` | Cyclic: number of states (2-256) |
+| `-threshold` | `1` | Cyclic: neighbours in the next state needed to advance |
+| `-neighborhood` | `vonneumann` | Cyclic: `moore` (square) or `vonneumann` (diamond) |
+| `-radius` | `1` | Cyclic: neighbourhood radius |
+| `-delay` | `5` | GIF frame delay, in 1/100 s |
+| `-pingpong` | `false` | GIF or ZIP played forward then backward: a loop without a jump |
+| `-mask` | | PNG or JPEG image: life stays inside its light areas (or opaque ones, if it has transparency), from start to end |
+| `-o` | `out.png` | Output file: `.png` (last generation), `.gif` (animation) or `.zip` (one PNG per generation, for Resolume, MadMapper, TouchDesigner…) |
+| `-serve` | | Serve the web page on this address (`:8080`) instead of writing a file |
 
-Chaque état est placé sur le dégradé :
-- B/S : selon l'âge de la cellule (échelle log), de la première couleur (vient de
-  naître) à la dernière (vivante depuis longtemps) ; les cellules mortes ont la
-  couleur de fond.
-- Generations : vivante = première couleur, puis les états mourants jusqu'à la
-  dernière ; mortes = fond.
-- Cyclique : états répartis régulièrement sur tout le dégradé.
+Each state is placed along the gradient:
+- B/S: by the cell's age (log scale), from the first colour (just born) to the
+  last (alive for long); dead cells take the background colour.
+- Generations: alive is the first colour, then the dying states up to the
+  last; dead cells take the background.
+- Cyclic: states spread evenly over the whole gradient.
 
 ## Tests
 
 ```
 go test ./...
 ```
+
+## License
+
+MIT, see [LICENSE](LICENSE).
