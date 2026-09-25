@@ -5,7 +5,7 @@ import (
 	"image/color"
 	"image/gif"
 	"image/png"
-	"os"
+	"io"
 )
 
 // Render draws the grid with palette pal, each cell scale×scale pixels.
@@ -29,31 +29,13 @@ func Render(g *Grid, scale int, pal color.Palette) *image.Paletted {
 	return img
 }
 
-func WritePNG(path string, img image.Image) error {
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	if err := png.Encode(f, img); err != nil {
-		f.Close()
-		return err
-	}
-	return f.Close()
-}
+func WritePNG(w io.Writer, img image.Image) error { return png.Encode(w, img) }
 
 // WriteGIF writes frames as a looping animation, delay in 1/100 s per frame.
-func WriteGIF(path string, frames []*image.Paletted, delay int) error {
+func WriteGIF(w io.Writer, frames []*image.Paletted, delay int) error {
 	anim := &gif.GIF{Image: frames, Delay: make([]int, len(frames))}
 	for i := range anim.Delay {
 		anim.Delay[i] = delay
 	}
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	if err := gif.EncodeAll(f, anim); err != nil {
-		f.Close()
-		return err
-	}
-	return f.Close()
+	return gif.EncodeAll(w, anim)
 }
