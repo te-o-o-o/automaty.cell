@@ -45,6 +45,29 @@ N'importe quelle règle au format B/S (notation Golly) fonctionne, pas seulement
 ./cellgen -rule B35678/S5678 -density 0.5 -gens 100 -o custom.png
 ```
 
+Automate Generations (notation `S/B/C` : survie / naissance / nombre d'états) :
+
+```
+./cellgen -rule 345/2/4 -gens 200 -palette fire -o starwars.gif
+./cellgen -rule brian -gens 150 -o brian.png
+```
+
+Automate cyclique : une cellule à l'état k passe à k+1 (modulo `-states`) si au
+moins `-threshold` voisins sont déjà à k+1 :
+
+```
+./cellgen -cyclic -states 8 -threshold 5 -radius 3 -gens 400 -scale 3 -palette viridis -o spirales.png
+./cellgen -cyclic -states 14 -threshold 1 -neighborhood vonneumann -gens 500 -scale 3 -palette ocean -o cca.png
+./cellgen -cyclic -states 3 -threshold 3 -gens 300 -scale 3 -o 313.png
+./cellgen -cyclic -states 6 -threshold 2 -radius 2 -neighborhood vonneumann -gens 400 -scale 3 -o labyrinthe.png
+```
+
+Dégradé personnalisé :
+
+```
+./cellgen -rule belzhab -gens 150 -palette-from 1a0033 -palette-to ffcc00 -o belzhab.png
+```
+
 Lister les règles nommées :
 
 ```
@@ -55,20 +78,31 @@ Lister les règles nommées :
 
 | Flag | Défaut | Rôle |
 |---|---|---|
-| `-rule` | `B3/S23` | Règle B/S (`B36/S23`, `b2/s`…) ou nom de preset |
+| `-rule` | `B3/S23` | Règle B/S (`B36/S23`, `b2/s`…), Generations S/B/C (`345/2/4`, `/2/3`…) ou nom de preset |
 | `-list-rules` | | Affiche les presets et quitte |
 | `-w`, `-h` | `200` | Taille de la grille en cellules |
 | `-scale` | `4` | Pixels par cellule |
 | `-gens` | `100` | Nombre de générations, l'état initial compris |
 | `-seed` | `1` | Graine aléatoire : même graine, même résultat |
-| `-density` | `0.3` | Proportion initiale de cellules vivantes |
+| `-density` | `0.3` | Proportion initiale de cellules vivantes (ignorée en cyclique : états uniformes) |
 | `-wrap` | `true` | Bords toriques ; `-wrap=false` pour des bords morts |
-| `-palette` | `age` | `age` (couleur selon l'âge de la cellule) ou `bw` |
+| `-palette` | `age` | Dégradé : `age`, `bw`, `fire`, `ocean`, `viridis`, `mono` |
+| `-palette-from`, `-palette-to` | | Dégradé personnalisé entre deux couleurs `RRGGBB` (remplace `-palette`) |
+| `-cyclic` | `false` | Automate cyclique au lieu de `-rule` |
+| `-states` | `14` | Cyclique : nombre d'états (2-256) |
+| `-threshold` | `3` | Cyclique : voisins à l'état suivant nécessaires pour avancer |
+| `-neighborhood` | `moore` | Cyclique : `moore` (carré) ou `vonneumann` (losange) |
+| `-radius` | `1` | Cyclique : rayon du voisinage |
 | `-delay` | `5` | Délai entre images du GIF, en 1/100 s |
 | `-o` | `out.png` | Fichier de sortie : `.gif` produit une animation, sinon un PNG de la dernière génération |
 
-La palette `age` va du jaune pâle (cellule qui vient de naître) au bleu profond
-(cellule vivante depuis longtemps), ce qui fait ressortir les structures stables.
+Chaque état est placé sur le dégradé :
+- B/S : selon l'âge de la cellule (échelle log), de la première couleur (vient de
+  naître) à la dernière (vivante depuis longtemps) ; les cellules mortes ont la
+  couleur de fond.
+- Generations : vivante = première couleur, puis les états mourants jusqu'à la
+  dernière ; mortes = fond.
+- Cyclique : états répartis régulièrement sur tout le dégradé.
 
 ## Tests
 
