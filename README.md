@@ -1,5 +1,11 @@
 # automaty.cell
 
+<p align="center">
+  <img src="docs/demo1.gif" width="32%" alt="An automaton evolving">
+  <img src="docs/demo2.gif" width="32%" alt="An automaton growing in a start shape">
+  <img src="docs/demo3.gif" width="32%" alt="Square spirals of a cyclic automaton">
+</p>
+
 Procedural images (PNG), animations (GIF) and image sequences (ZIP) from 2D
 cellular automata, as a command-line tool and a web page.
 Go 1.22+, standard library only.
