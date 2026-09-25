@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>cellgen</title>
+<title>automaty.cell</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <style>
@@ -203,7 +203,7 @@
 <body>
 <div class="page">
 <header>
-  <h1>cellgen</h1>
+  <h1>automaty.cell</h1>
   <div class="pickers">
     <label>{{.T.theme}}
       <select id="theme">
@@ -396,7 +396,7 @@ function options() {
 function commandLine(opts) {
   const quote = v => /^[\w.\/-]+$/.test(v) ? v : `'${v}'`;
   const args = opts.filter(([, , isDefault]) => !isDefault).map(([k, v]) => `-${k}=${quote(v)}`);
-  return ['cellgen', ...args, `-o out.${format()}`].join(' ');
+  return ['automaty.cell', ...args, `-o out.${format()}`].join(' ');
 }
 
 // Query string for the options: all of them for the server, or only the
@@ -449,7 +449,7 @@ async function render() {
     $('img').hidden = false;
     $('error').hidden = true;
     $('download').href = url;
-    $('download').download = 'cellgen.' + format();
+    $('download').download = 'automaty.cell.' + format();
     $('status').textContent = '';
   } catch (err) {
     if (err.name === 'AbortError') return;
@@ -532,10 +532,10 @@ for (const [id, def] of [['theme', 'bonbon'], ['lang', 'en']]) {
 }
 
 // The warning stays dismissed on later visits (when storage is available).
-try { if (localStorage.getItem('cellgen-warning-ok')) $('warning').hidden = true; } catch {}
+try { if (localStorage.getItem('automaty.cell-warning-ok')) $('warning').hidden = true; } catch {}
 $('warning-ok').addEventListener('click', () => {
   $('warning').hidden = true;
-  try { localStorage.setItem('cellgen-warning-ok', '1'); } catch {}
+  try { localStorage.setItem('automaty.cell-warning-ok', '1'); } catch {}
 });
 
 setColors(['#1a0033', '#ff3ea5', '#ffcc00']);

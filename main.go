@@ -35,7 +35,7 @@ type options struct {
 }
 
 func newFlagSet(o *options) *flag.FlagSet {
-	fs := flag.NewFlagSet("cellgen", flag.ContinueOnError)
+	fs := flag.NewFlagSet("automaty.cell", flag.ContinueOnError)
 	fs.IntVar(&o.w, "w", 380, "grid width in cells")
 	fs.IntVar(&o.h, "h", 380, "grid height in cells")
 	fs.IntVar(&o.scale, "scale", 2, "pixels per cell")
@@ -195,6 +195,6 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 }
 
 func fail(code int, err error) {
-	fmt.Fprintln(os.Stderr, "cellgen:", err)
+	fmt.Fprintln(os.Stderr, "automaty.cell:", err)
 	os.Exit(code)
 }

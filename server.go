@@ -40,7 +40,7 @@ func serve(addr string) error {
 	mux.HandleFunc("GET /render", handleRender)
 	mux.HandleFunc("GET /surprise", handleSurprise)
 
-	log.Printf("cellgen: listening on %s", addr)
+	log.Printf("automaty.cell: listening on %s", addr)
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second, WriteTimeout: time.Minute}
 	return srv.ListenAndServe()
 }

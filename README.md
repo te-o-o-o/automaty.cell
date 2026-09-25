@@ -1,10 +1,10 @@
-# cellgen
+# automaty.cell
 
 Générateur d'images (PNG) et d'animations (GIF) à partir d'automates cellulaires 2D.
 Go 1.22+, stdlib uniquement.
 
 ```
-go build -o cellgen .
+go build -o automaty.cell .
 ```
 
 ## Exemples
@@ -12,80 +12,80 @@ go build -o cellgen .
 Game of Life, 300 générations en GIF animé :
 
 ```
-./cellgen -rule B3/S23 -w 200 -h 200 -scale 4 -gens 300 -seed 42 -o life.gif
+./automaty.cell -rule B3/S23 -w 200 -h 200 -scale 4 -gens 300 -seed 42 -o life.gif
 ```
 
 Image fixe de la 200ᵉ génération de HighLife :
 
 ```
-./cellgen -rule highlife -density 0.35 -gens 200 -o highlife.png
+./automaty.cell -rule highlife -density 0.35 -gens 200 -o highlife.png
 ```
 
 Day & Night, animation plus lente (10/100 s par image) :
 
 ```
-./cellgen -rule daynight -density 0.5 -w 120 -h 120 -scale 3 -gens 150 -delay 10 -o daynight.gif
+./automaty.cell -rule daynight -density 0.5 -w 120 -h 120 -scale 3 -gens 150 -delay 10 -o daynight.gif
 ```
 
 Labyrinthe, avec des bords morts au lieu d'une grille torique :
 
 ```
-./cellgen -rule maze -density 0.1 -w 120 -h 120 -gens 300 -wrap=false -o maze.png
+./automaty.cell -rule maze -density 0.1 -w 120 -h 120 -gens 300 -wrap=false -o maze.png
 ```
 
 Explosion de Seeds depuis quelques cellules, en noir et blanc :
 
 ```
-./cellgen -rule seeds -density 0.02 -gens 60 -palette bw -o seeds.gif
+./automaty.cell -rule seeds -density 0.02 -gens 60 -palette bw -o seeds.gif
 ```
 
 N'importe quelle règle au format B/S (notation Golly) fonctionne, pas seulement les presets :
 
 ```
-./cellgen -rule B35678/S5678 -density 0.5 -gens 100 -o custom.png
+./automaty.cell -rule B35678/S5678 -density 0.5 -gens 100 -o custom.png
 ```
 
 Automate Generations (notation `S/B/C` : survie / naissance / nombre d'états) :
 
 ```
-./cellgen -rule 345/2/4 -gens 200 -palette fire -o starwars.gif
-./cellgen -rule brian -gens 150 -o brian.png
+./automaty.cell -rule 345/2/4 -gens 200 -palette fire -o starwars.gif
+./automaty.cell -rule brian -gens 150 -o brian.png
 ```
 
 Automate cyclique : une cellule à l'état k passe à k+1 (modulo `-states`) si au
 moins `-threshold` voisins sont déjà à k+1 :
 
 ```
-./cellgen -cyclic -states 8 -threshold 5 -radius 3 -gens 400 -scale 3 -palette viridis -o spirales.png
-./cellgen -cyclic -states 14 -threshold 1 -neighborhood vonneumann -gens 500 -scale 3 -palette ocean -o cca.png
-./cellgen -cyclic -states 3 -threshold 3 -gens 300 -scale 3 -o 313.png
-./cellgen -cyclic -states 6 -threshold 2 -radius 2 -neighborhood vonneumann -gens 400 -scale 3 -o labyrinthe.png
+./automaty.cell -cyclic -states 8 -threshold 5 -radius 3 -gens 400 -scale 3 -palette viridis -o spirales.png
+./automaty.cell -cyclic -states 14 -threshold 1 -neighborhood vonneumann -gens 500 -scale 3 -palette ocean -o cca.png
+./automaty.cell -cyclic -states 3 -threshold 3 -gens 300 -scale 3 -o 313.png
+./automaty.cell -cyclic -states 6 -threshold 2 -radius 2 -neighborhood vonneumann -gens 400 -scale 3 -o labyrinthe.png
 ```
 
 Départ symétrique (mandalas et kaléidoscopes) : le hasard initial est recopié
 en miroir, et comme les règles sont symétriques, le motif le reste :
 
 ```
-./cellgen -rule belzhab -symmetry 8 -gens 150 -seed 5 -palette fire -o mandala.png
-./cellgen -rule starwars -symmetry 8 -gens 120 -seed 9 -palette viridis -o papillon.png
+./automaty.cell -rule belzhab -symmetry 8 -gens 150 -seed 5 -palette fire -o mandala.png
+./automaty.cell -rule starwars -symmetry 8 -gens 120 -seed 9 -palette viridis -o papillon.png
 ```
 
 Dégradé personnalisé :
 
 ```
-./cellgen -rule belzhab -gens 150 -colors 1a0033,ff3ea5,ffcc00,3ef3ff -o belzhab.png
+./automaty.cell -rule belzhab -gens 150 -colors 1a0033,ff3ea5,ffcc00,3ef3ff -o belzhab.png
 ```
 
 Lister les règles nommées :
 
 ```
-./cellgen -list-rules
+./automaty.cell -list-rules
 ```
 
 ## Page web
 
 ```
-./cellgen -serve :8080
+./automaty.cell -serve :8080
 ```
 
 Puis ouvrir http://localhost:8080 : chaque option a son champ, le rendu se
