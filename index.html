@@ -129,6 +129,7 @@
   }
   .powers input:checked + span { background: var(--primary); color: var(--primary-text); }
   .powers input:focus-visible + span { outline: 2px solid var(--highlight); outline-offset: 2px; }
+  .hint { margin: 0; color: var(--highlight); font-size: var(--small); }
   #palette-preview { display: block; height: 8px; border: var(--border) solid var(--line); }
   .colors { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 6px; }
   .colors input { width: 100%; height: 30px; padding: 1px; }
@@ -256,14 +257,15 @@
       </select>
     </label>
     <label data-mode="cyclic">{{.T.states}} <input name="states" type="number" min="2" max="256" value="14"></label>
-    <label data-mode="cyclic">{{.T.threshold}} <input name="threshold" type="number" min="1" value="3"></label>
+    <label data-mode="cyclic">{{.T.threshold}} <input name="threshold" type="number" min="1" value="1"></label>
     <label data-mode="cyclic">{{.T.neighbourhood}}
       <select name="neighborhood">
         <option value="moore">{{.T.moore}}</option>
-        <option value="vonneumann">{{.T.vonNeumann}}</option>
+        <option value="vonneumann" selected>{{.T.vonNeumann}}</option>
       </select>
     </label>
     <label data-mode="cyclic">{{.T.radius}} <input name="radius" type="number" min="1" value="1"></label>
+    <p id="cyclic-hint" class="wide hint" hidden>{{.T.cyclicHint}}</p>
   </fieldset>
 
   <fieldset>
@@ -343,6 +345,8 @@ const $ = id => document.getElementById(id);
 const theme = new URLSearchParams(location.search).get('theme');
 const lang = new URLSearchParams(location.search).get('lang');
 const T = {{.JSText}}; // the few words the script writes itself
+// Cyclic settings known to keep moving ("neighborhood,radius,states,threshold").
+const LIVELY = new Set({{.Lively}});
 
 const mode = () => form.mode.value;
 const format = () => $('format').value;
@@ -368,6 +372,8 @@ function updateVisibility() {
   for (const el of form.querySelectorAll('[data-format]')) el.hidden = el.dataset.format !== format();
   for (const el of form.querySelectorAll('[data-custom]')) el.hidden = !custom();
   form.palette.disabled = custom();
+  const cyc = [form.neighborhood.value, form.radius.value, form.states.value, form.threshold.value].join(',');
+  $('cyclic-hint').hidden = mode() !== 'cyclic' || LIVELY.has(cyc);
   $('density-out').value = form.density.value;
   $('palette-preview').style.background = custom()
     ? `linear-gradient(90deg, ${colors().join(', ')})`

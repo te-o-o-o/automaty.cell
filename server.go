@@ -69,7 +69,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err := indexTmpl.Execute(w, map[string]any{
 		"Presets": Presets, "Palettes": palettes, "MaxSide": maxSide, "MaxScale": maxScale, "MaxGens": maxGens,
-		"Theme": theme, "Lang": lang, "T": texts[lang], "JSText": jsText,
+		"Theme": theme, "Lang": lang, "T": texts[lang], "JSText": jsText, "Lively": livelyKeys(),
 	})
 	if err != nil {
 		log.Print(err)
@@ -177,7 +177,7 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 	}
 	s := surprise(rand.New(rand.NewSource(time.Now().UnixNano())), *o)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
+	reply := map[string]string{
 		"cyclic":       strconv.FormatBool(s.cyclic),
 		"rule":         s.rule,
 		"density":      strconv.FormatFloat(s.density, 'f', -1, 64),
@@ -192,5 +192,10 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 		"gens":         strconv.Itoa(s.gens),
 		"delay":        strconv.Itoa(s.delay),
 		"wrap":         strconv.FormatBool(s.wrap),
-	})
+	}
+	if s.colors != "" { // the page switches to a custom gradient
+		delete(reply, "palette")
+		reply["colors"] = s.colors
+	}
+	json.NewEncoder(w).Encode(reply)
 }

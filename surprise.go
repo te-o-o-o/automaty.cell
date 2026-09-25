@@ -1,16 +1,57 @@
 package main
 
 import (
+	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
 )
 
+// cyclicLively lists, per neighbourhood and state count, the thresholds for
+// which a cyclic automaton keeps moving in waves or spirals: above them it
+// freezes, below them it boils into noise. Measured on 100×100 grids over 150
+// generations, with two seeds, for 3 to 16 states.
+var cyclicLively = []struct {
+	neighborhood string
+	radius       int
+	thresholds   map[int][]int // states → thresholds
+}{
+	{"moore", 1, map[int][]int{3: {3}, 4: {2, 3}, 5: {2, 3}, 6: {2}, 7: {2}, 8: {1, 2}, 9: {1, 2},
+		10: {1}, 11: {1}, 12: {1}, 13: {1}, 14: {1}, 15: {1}, 16: {1}}},
+	{"moore", 2, map[int][]int{3: {6, 7, 8, 9, 10}, 4: {5, 6, 7, 8, 9}, 5: {4, 5, 6, 7, 8}, 6: {3, 4, 5, 6, 7},
+		7: {3, 4, 5, 6}, 8: {3, 4, 5}, 9: {2, 3, 4}, 10: {2, 3, 4}, 11: {2, 3, 4}, 12: {2},
+		13: {2, 3}, 14: {2, 3}, 15: {2, 3}, 16: {2, 3}}},
+	{"moore", 3, map[int][]int{3: {12}, 4: {9, 10, 11, 12}, 5: {7, 8, 9, 10, 11, 12}, 6: {6, 7, 9, 10, 11, 12},
+		7: {5, 6, 7, 9, 10, 11}, 8: {4, 5, 6, 7, 8, 9, 10}, 9: {4, 5, 6, 7, 8, 9}, 10: {4, 6, 7, 8},
+		11: {4, 6, 7}, 12: {3, 4, 6}, 13: {3, 6}, 14: {3, 4, 5, 6}, 15: {3, 5}, 16: {3, 5}}},
+	{"vonneumann", 1, map[int][]int{14: {1}, 15: {1}, 16: {1}}},
+	{"vonneumann", 2, map[int][]int{3: {4}, 4: {3, 4}, 5: {2, 3, 4}, 6: {2, 3}, 7: {2, 3}, 8: {2, 3},
+		9: {2}, 10: {2}, 11: {2}, 12: {2}, 13: {2}, 14: {2}, 15: {1}, 16: {1}}},
+	{"vonneumann", 3, map[int][]int{3: {6, 7, 8, 9}, 4: {5, 6, 7, 8, 9}, 5: {4, 5, 6, 7, 8}, 6: {3, 4, 5, 6, 7},
+		7: {3, 4, 5, 6}, 8: {3, 4, 5}, 9: {3, 4, 5}, 10: {2, 3, 4}, 11: {2, 4}, 12: {2, 3},
+		13: {2, 3}, 14: {2, 3}, 15: {2, 3}}},
+}
+
+// livelyKeys lists every lively cyclic setting as "neighborhood,radius,states,threshold".
+func livelyKeys() []string {
+	var keys []string
+	for _, e := range cyclicLively {
+		for states := 3; states <= 16; states++ {
+			for _, t := range e.thresholds[states] {
+				keys = append(keys, fmt.Sprintf("%s,%d,%d,%d", e.neighborhood, e.radius, states, t))
+			}
+		}
+	}
+	return keys
+}
+
 // surprise returns random settings on top of base, retrying until the
-// automaton looks interesting: rule, palette, seed, symmetry, and the
-// animation (a GIF): generations, speed and edges. The grid size and cell
-// size stay those of base; generations are cut if needed to stay within the
-// web page's limits.
+// automaton looks interesting. It varies the family (a lively cyclic setting,
+// a preset, a mutated preset or a random rule), density, colours (a palette
+// or a random gradient), seed, symmetry, and the animation (a GIF):
+// generations, speed and edges. The grid size and cell size stay those of
+// base; generations are cut if needed to stay within the web page's limits.
 func surprise(rng *rand.Rand, base options) options {
 	var colourful []string // every gradient but black and white
 	for _, name := range paletteNames() {
@@ -18,11 +59,18 @@ func surprise(rng *rand.Rand, base options) options {
 			colourful = append(colourful, name)
 		}
 	}
+	lively := livelyKeys()
+	// The family is drawn once: retrying it too would favour the families
+	// that pass the interest test most often (cyclic ones nearly always do).
+	family := rng.Float64()
 	for try := 0; try < 300; try++ {
 		o := base
 		o.seed = rng.Int63n(1_000_000)
 		o.palette = colourful[rng.Intn(len(colourful))]
 		o.palFrom, o.palTo, o.colors = "", "", ""
+		if rng.Float64() < 0.35 {
+			o.colors = randomColors(rng)
+		}
 		o.symmetry = []int{1, 1, 2, 4, 8}[rng.Intn(5)]
 		if o.symmetry == 8 && o.w != o.h {
 			o.symmetry = 4
@@ -31,15 +79,23 @@ func surprise(rng *rand.Rand, base options) options {
 		o.gens = 60 + rng.Intn(91)
 		o.delay = []int{3, 5, 8, 12}[rng.Intn(4)]
 		o.wrap = rng.Float64() < 0.75
-		o.cyclic = rng.Float64() < 0.25
-		if o.cyclic {
-			o.states = 3 + rng.Intn(14)
-			o.threshold = 1 + rng.Intn(5)
-			o.radius = 1 + rng.Intn(3)
-			o.neighborhood = []string{"moore", "vonneumann"}[rng.Intn(2)]
-		} else {
+
+		o.cyclic = false
+		o.density = 0.05 + float64(rng.Intn(66))/100
+		switch {
+		case family < 0.25:
+			o.cyclic = true
+			k := strings.Split(lively[rng.Intn(len(lively))], ",")
+			o.neighborhood = k[0]
+			o.radius, _ = strconv.Atoi(k[1])
+			o.states, _ = strconv.Atoi(k[2])
+			o.threshold, _ = strconv.Atoi(k[3])
+		case family < 0.45:
+			o.rule = Presets[rng.Intn(len(Presets))].Rule
+		case family < 0.65:
+			o.rule = mutate(rng, Presets[rng.Intn(len(Presets))].Rule)
+		default:
 			o.rule = randomRule(rng)
-			o.density = float64(20+rng.Intn(41)) / 100
 		}
 		for o.gens > 20 && checkLimits(&o) != nil {
 			o.gens -= 10
@@ -49,6 +105,83 @@ func surprise(rng *rand.Rand, base options) options {
 		}
 	}
 	return base // ponytail: 300 duds in a row never happened in tests; add a better fallback if it does
+}
+
+// mutate flips one neighbour count in a B/S or Generations rule (never birth
+// on 0), or for Generations sometimes changes the number of states.
+func mutate(rng *rand.Rand, rule string) string {
+	parts := strings.Split(rule, "/")
+	toggle := func(digits string, from int) string {
+		d := string(rune('0' + from + rng.Intn(9-from)))
+		if strings.Contains(digits, d) {
+			return strings.Replace(digits, d, "", 1)
+		}
+		return digits + d
+	}
+	if len(parts) == 3 { // S/B/C
+		switch rng.Intn(3) {
+		case 0:
+			parts[0] = toggle(parts[0], 0)
+		case 1:
+			parts[1] = toggle(parts[1], 1)
+		default:
+			c, _ := strconv.Atoi(parts[2])
+			parts[2] = strconv.Itoa(max(3, c+[]int{-2, -1, 1, 2}[rng.Intn(4)]))
+		}
+		return strings.Join(parts, "/")
+	}
+	for i, p := range parts { // B…/S…, in either order
+		if rng.Intn(2) == 0 || i == len(parts)-1 {
+			from := 0
+			if p[0] == 'B' {
+				from = 1
+			}
+			parts[i] = p[:1] + toggle(p[1:], from)
+			break
+		}
+	}
+	return strings.Join(parts, "/")
+}
+
+// randomColors returns 2 to 5 colours as RRGGBB,…: hues a random step apart,
+// from light (young or alive cells) to dark (old or dying ones), so they read
+// well on a dark background.
+func randomColors(rng *rand.Rand) string {
+	n := 2 + rng.Intn(4)
+	hue := rng.Float64() * 360
+	step := (20 + rng.Float64()*100) * float64(1-2*rng.Intn(2))
+	sat := 0.65 + rng.Float64()*0.35
+	var hex []string
+	for i := 0; i < n; i++ {
+		light := 0.85 - 0.55*float64(i)/float64(n-1)
+		r, g, b := hsl(math.Mod(hue+step*float64(i)+720, 360), sat, light)
+		hex = append(hex, fmt.Sprintf("%02x%02x%02x", r, g, b))
+	}
+	return strings.Join(hex, ",")
+}
+
+// hsl converts a hue (degrees), saturation and lightness (0-1) to RGB.
+func hsl(h, s, l float64) (r, g, b uint8) {
+	c := (1 - math.Abs(2*l-1)) * s
+	x := c * (1 - math.Abs(math.Mod(h/60, 2)-1))
+	var rf, gf, bf float64
+	switch {
+	case h < 60:
+		rf, gf = c, x
+	case h < 120:
+		rf, gf = x, c
+	case h < 180:
+		gf, bf = c, x
+	case h < 240:
+		gf, bf = x, c
+	case h < 300:
+		rf, bf = x, c
+	default:
+		rf, bf = c, x
+	}
+	m := l - c/2
+	to := func(v float64) uint8 { return uint8(math.Round((v + m) * 255)) }
+	return to(rf), to(gf), to(bf)
 }
 
 // randomRule returns a B/S rule, or a Generations rule one time in three.

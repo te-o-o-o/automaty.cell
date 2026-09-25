@@ -124,8 +124,8 @@ limites pour rester utilisable en ligne : grille de 500×500 au plus, échelle 8
 | `-palette-from`, `-palette-to` | | Dégradé personnalisé entre deux couleurs `RRGGBB` (raccourci historique de `-colors`) |
 | `-cyclic` | `false` | Automate cyclique au lieu de `-rule` |
 | `-states` | `14` | Cyclique : nombre d'états (2-256) |
-| `-threshold` | `3` | Cyclique : voisins à l'état suivant nécessaires pour avancer |
-| `-neighborhood` | `moore` | Cyclique : `moore` (carré) ou `vonneumann` (losange) |
+| `-threshold` | `1` | Cyclique : voisins à l'état suivant nécessaires pour avancer |
+| `-neighborhood` | `vonneumann` | Cyclique : `moore` (carré) ou `vonneumann` (losange) |
 | `-radius` | `1` | Cyclique : rayon du voisinage |
 | `-delay` | `5` | Délai entre images du GIF, en 1/100 s |
 | `-o` | `out.png` | Fichier de sortie : `.gif` produit une animation, sinon un PNG de la dernière génération |

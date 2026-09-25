@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -112,5 +114,29 @@ func TestTexts(t *testing.T) {
 	}
 	if len(texts["en"]) != len(texts["fr"]) {
 		t.Errorf("en has %d words, fr %d", len(texts["en"]), len(texts["fr"]))
+	}
+}
+
+// The cyclic defaults are lively, mutated presets stay valid rules, and
+// random gradients have 2 to 5 valid colours.
+func TestSurpriseHelpers(t *testing.T) {
+	var o options
+	newFlagSet(&o).Parse(nil)
+	key := fmt.Sprintf("%s,%d,%d,%d", o.neighborhood, o.radius, o.states, o.threshold)
+	if !slices.Contains(livelyKeys(), key) {
+		t.Errorf("cyclic defaults %s are not lively", key)
+	}
+	rng := rand.New(rand.NewSource(1))
+	for i := 0; i < 200; i++ {
+		rule := mutate(rng, Presets[i%len(Presets)].Rule)
+		if _, err := ParseRule(rule); err != nil {
+			t.Errorf("mutate(%s) = %s: %v", Presets[i%len(Presets)].Rule, rule, err)
+		}
+		colors := strings.Split(randomColors(rng), ",")
+		for _, c := range colors {
+			if _, err := parseHex(c); err != nil || len(colors) < 2 || len(colors) > 5 {
+				t.Errorf("randomColors: %v", colors)
+			}
+		}
 	}
 }
