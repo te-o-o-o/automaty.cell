@@ -1,9 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"image"
+	"image/color"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,7 +29,9 @@ func main() {
 	threshold := flag.Int("threshold", 3, "cyclic: neighbours in the next state needed to advance")
 	neighborhood := flag.String("neighborhood", "moore", "cyclic: moore or vonneumann")
 	radius := flag.Int("radius", 1, "cyclic: neighbourhood radius")
-	palette := flag.String("palette", "age", "colour palette: age or bw")
+	palette := flag.String("palette", "age", "colour gradient: age, bw, fire, ocean, viridis or mono")
+	palFrom := flag.String("palette-from", "", "custom gradient start colour, RRGGBB (with -palette-to)")
+	palTo := flag.String("palette-to", "", "custom gradient end colour, RRGGBB (with -palette-from)")
 	flag.Parse()
 
 	if *listRules {
@@ -41,8 +46,22 @@ func main() {
 		}
 	}
 
+	gr, ok := gradients[*palette]
+	if !ok {
+		fail(2, fmt.Errorf("unknown palette %q (want age, bw, fire, ocean, viridis or mono)", *palette))
+	}
+	if *palFrom != "" || *palTo != "" {
+		from, err1 := parseHex(*palFrom)
+		to, err2 := parseHex(*palTo)
+		if err := errors.Join(err1, err2); err != nil {
+			fail(2, fmt.Errorf("-palette-from and -palette-to: %w", err))
+		}
+		gr = gradient{black, []color.RGBA{from, to}}
+	}
+
 	g := NewGrid(*w, *h, *wrap)
 	var step func(*Grid) *Grid
+	var pal color.Palette
 	if *cyclic {
 		c := Cyclic{States: *states, Threshold: *threshold, Radius: *radius}
 		switch *neighborhood {
@@ -57,6 +76,8 @@ func main() {
 		}
 		g.RandomizeStates(*seed, c.States)
 		step = func(g *Grid) *Grid { return g.StepCyclic(c) }
+		// Every state is a live colour, spread evenly.
+		pal = gr.palette(c.States, false, func(s int) float64 { return float64(s) / float64(c.States-1) })
 	} else {
 		r, err := ParseRule(*rule)
 		if err != nil {
@@ -64,11 +85,15 @@ func main() {
 		}
 		g.Randomize(*seed, *density)
 		step = func(g *Grid) *Grid { return g.Step(r) }
-	}
-
-	pal, ok := palettes[*palette]
-	if !ok {
-		fail(2, fmt.Errorf("unknown palette %q (want age or bw)", *palette))
+		if r.States > 0 {
+			// Generations: alive first, then dying states evenly.
+			pal = gr.palette(r.States, true, func(s int) float64 {
+				return float64(s-1) / float64(max(r.States-2, 1))
+			})
+		} else {
+			// B/S ages 1-255, log scale: the first few generations matter most.
+			pal = gr.palette(256, true, func(s int) float64 { return math.Log(float64(s)) / math.Log(255) })
+		}
 	}
 
 	var err error

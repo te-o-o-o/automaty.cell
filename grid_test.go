@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"image/color"
+	"testing"
+)
 
 // A glider moves one cell diagonally (down-right) every 4 generations.
 func TestGliderMoves(t *testing.T) {
@@ -148,6 +151,27 @@ func TestParseRule(t *testing.T) {
 		"345/2/1", "345/2/", "9/2/3", "3/2/4/5", "B3/S23/4"} {
 		if _, err := ParseRule(bad); err == nil {
 			t.Errorf("ParseRule(%q): want error", bad)
+		}
+	}
+}
+
+func TestPalette(t *testing.T) {
+	if p := gradients["bw"].palette(256, true, func(s int) float64 { return 1 }); len(p) != 2 {
+		t.Errorf("bw palette: %d colours, want 2", len(p))
+	}
+	from, _ := parseHex("#000000")
+	to, _ := parseHex("ff8000")
+	gr := gradient{black, []color.RGBA{from, to}}
+	p := gr.palette(3, false, func(s int) float64 { return float64(s) / 2 })
+	want := color.Palette{from, color.RGBA{128, 64, 0, 255}, to}
+	for i := range want {
+		if p[i] != want[i] {
+			t.Errorf("state %d: %v, want %v", i, p[i], want[i])
+		}
+	}
+	for _, bad := range []string{"", "fff", "gg0000", "1234567"} {
+		if _, err := parseHex(bad); err == nil {
+			t.Errorf("parseHex(%q): want error", bad)
 		}
 	}
 }
