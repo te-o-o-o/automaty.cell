@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cellgen</title>
+<style>
+  :root {
+    --bg: #0b0b14;
+    --panel: #151522;
+    --line: #2a2a3d;
+    --text: #e8e6f0;
+    --muted: #9994b0;
+    --accent: #ff8a3d;
+    --error: #ff6b6b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.4 system-ui, sans-serif;
+  }
+  main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+    padding: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  form { display: flex; flex-direction: column; gap: 12px; }
+  fieldset {
+    margin: 0;
+    padding: 10px 12px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 10px;
+  }
+  legend { padding: 0 6px; color: var(--accent); font-weight: 600; }
+  label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
+  label.wide, .wide { grid-column: 1 / -1; }
+  label.check { flex-direction: row; align-items: center; gap: 6px; }
+  input, select, button {
+    font: inherit;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 5px 7px;
+    min-width: 0;
+  }
+  input[type=checkbox] { padding: 0; }
+  input[type=color] { padding: 1px; height: 30px; width: 100%; }
+  input[type=range] { padding: 0; }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  .row { display: flex; gap: 6px; }
+  .row > :first-child { flex: 1; }
+  .modes { display: flex; gap: 14px; }
+  [hidden] { display: none !important; }
+
+  #view { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  #frame {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 300px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+  }
+  #frame img { max-width: 100%; height: auto; image-rendering: pixelated; }
+  #status {
+    position: absolute; top: 10px; right: 12px;
+    color: var(--muted); font-size: 12px;
+  }
+  #error { color: var(--error); white-space: pre-wrap; }
+  #cmd {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+  }
+  #cmd code { flex: 1; overflow-x: auto; white-space: nowrap; font-size: 13px; }
+  #cmd a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+<form id="form" autocomplete="off">
+  <fieldset>
+    <legend>Automate</legend>
+    <div class="modes wide">
+      <label class="check"><input type="radio" name="mode" value="rule" checked> Règle B/S ou Generations</label>
+      <label class="check"><input type="radio" name="mode" value="cyclic"> Cyclique</label>
+    </div>
+
+    <label class="wide" data-mode="rule">Preset
+      <select id="preset">
+        <option value="">— règle personnalisée —</option>
+        {{range .Presets}}<option value="{{.Name}}">{{.Name}} ({{.Rule}})</option>
+        {{end}}
+      </select>
+    </label>
+    <label class="wide" data-mode="rule">Règle (B3/S23, 345/2/4, ou nom de preset)
+      <input name="rule" value="B3/S23">
+    </label>
+
+    <label class="wide" data-mode="cyclic">Préréglage
+      <select id="cyclic-preset">
+        <option value="">— personnalisé —</option>
+        <option value="3,3,moore,1">Spirales rondes (3 / 3 / Moore / 1)</option>
+        <option value="4,3,moore,1">Vagues (4 / 3 / Moore / 1)</option>
+        <option value="8,5,moore,3">Grandes spirales (8 / 5 / Moore / 3)</option>
+        <option value="14,1,vonneumann,1">Spirales carrées (14 / 1 / Von Neumann / 1)</option>
+        <option value="6,2,vonneumann,2">Labyrinthe (6 / 2 / Von Neumann / 2)</option>
+      </select>
+    </label>
+    <label data-mode="cyclic">États <input name="states" type="number" min="2" max="256" value="14"></label>
+    <label data-mode="cyclic">Seuil <input name="threshold" type="number" min="1" value="3"></label>
+    <label data-mode="cyclic">Voisinage
+      <select name="neighborhood">
+        <option value="moore">Moore (carré)</option>
+        <option value="vonneumann">Von Neumann (losange)</option>
+      </select>
+    </label>
+    <label data-mode="cyclic">Rayon <input name="radius" type="number" min="1" value="1"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Grille</legend>
+    <label>Largeur <input name="w" type="number" min="1" max="{{.MaxSide}}" value="200"></label>
+    <label>Hauteur <input name="h" type="number" min="1" max="{{.MaxSide}}" value="200"></label>
+    <label>Pixels par cellule <input name="scale" type="number" min="1" max="{{.MaxScale}}" value="4"></label>
+    <label class="check" style="align-self:end"><input name="wrap" type="checkbox" checked> Bords toriques</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Départ</legend>
+    <label class="wide">Seed
+      <span class="row"><input name="seed" type="number" value="1"><button type="button" id="dice" title="Seed aléatoire">🎲</button></span>
+    </label>
+    <label class="wide" data-mode="rule">Densité : <output id="density-out">0.3</output>
+      <input name="density" type="range" min="0" max="1" step="0.01" value="0.3">
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Rendu</legend>
+    <label>Format
+      <select id="format">
+        <option value="png">PNG (dernière génération)</option>
+        <option value="gif">GIF animé</option>
+      </select>
+    </label>
+    <label>Générations <input name="gens" type="number" min="1" max="{{.MaxGens}}" value="100"></label>
+    <label data-format="gif">Délai (1/100 s) <input name="delay" type="number" min="0" value="5"></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Couleurs</legend>
+    <label class="wide">Palette
+      <select name="palette">
+        <option>age</option><option>bw</option><option>fire</option>
+        <option>ocean</option><option>viridis</option><option>mono</option>
+      </select>
+    </label>
+    <label class="check wide"><input type="checkbox" id="custom"> Dégradé personnalisé</label>
+    <label data-custom>De <input name="palette-from" type="color" value="#1a0033"></label>
+    <label data-custom>À <input name="palette-to" type="color" value="#ffcc00"></label>
+  </fieldset>
+</form>
+
+<section id="view">
+  <div id="frame">
+    <span id="status"></span>
+    <img id="img" alt="rendu de l'automate">
+    <div id="error" hidden></div>
+  </div>
+  <div id="cmd">
+    <code id="cmdline"></code>
+    <button type="button" id="copy">Copier</button>
+    <a id="download" download>Télécharger</a>
+  </div>
+</section>
+</main>
+
+<script>
+const form = document.getElementById('form');
+const $ = id => document.getElementById(id);
+
+const mode = () => form.mode.value;
+const format = () => $('format').value;
+const custom = () => $('custom').checked;
+
+// Show only the fields that apply to the current mode, format and palette.
+function updateVisibility() {
+  for (const el of form.querySelectorAll('[data-mode]')) el.hidden = el.dataset.mode !== mode();
+  for (const el of form.querySelectorAll('[data-format]')) el.hidden = el.dataset.format !== format();
+  for (const el of form.querySelectorAll('[data-custom]')) el.hidden = !custom();
+  form.palette.disabled = custom();
+  $('density-out').value = form.density.value;
+}
+
+// The options to send, as [flag, value, isDefault]; hidden fields are skipped.
+function options() {
+  const opts = [];
+  if (mode() === 'cyclic') opts.push(['cyclic', 'true', false]);
+  for (const el of form.elements) {
+    if (!el.name || el.name === 'mode' || el.disabled || el.closest('[hidden]')) continue;
+    if (el.type === 'checkbox') {
+      opts.push([el.name, String(el.checked), el.checked === el.defaultChecked]);
+    } else if (el.type === 'color') {
+      opts.push([el.name, el.value.slice(1), false]);
+    } else {
+      const def = el.tagName === 'SELECT' ? el.options[0].value : el.defaultValue;
+      opts.push([el.name, el.value, el.value === def]);
+    }
+  }
+  return opts;
+}
+
+function commandLine(opts) {
+  const quote = v => /^[\w.\/-]+$/.test(v) ? v : `'${v}'`;
+  const args = opts.filter(([, , isDefault]) => !isDefault).map(([k, v]) => `-${k}=${quote(v)}`);
+  return ['cellgen', ...args, `-o out.${format()}`].join(' ');
+}
+
+let controller, timer;
+async function render() {
+  const opts = options();
+  $('cmdline').textContent = commandLine(opts);
+  const params = new URLSearchParams(opts.map(([k, v]) => [k, v]));
+  params.set('format', format());
+
+  controller?.abort();
+  controller = new AbortController();
+  $('status').textContent = 'calcul…';
+  try {
+    const res = await fetch('/render?' + params, { signal: controller.signal });
+    if (!res.ok) throw new Error(await res.text());
+    const url = URL.createObjectURL(await res.blob());
+    URL.revokeObjectURL($('img').src);
+    $('img').src = url;
+    $('img').hidden = false;
+    $('error').hidden = true;
+    $('download').href = url;
+    $('download').download = 'cellgen.' + format();
+    $('status').textContent = '';
+  } catch (err) {
+    if (err.name === 'AbortError') return;
+    $('img').hidden = true;
+    $('error').hidden = false;
+    $('error').textContent = err.message;
+    $('status').textContent = '';
+  }
+}
+
+function changed() {
+  updateVisibility();
+  clearTimeout(timer);
+  timer = setTimeout(render, 300);
+}
+
+form.addEventListener('input', changed);
+form.addEventListener('submit', e => e.preventDefault());
+
+$('preset').addEventListener('change', e => {
+  if (e.target.value) form.rule.value = e.target.value;
+});
+form.rule.addEventListener('input', () => { $('preset').value = ''; });
+
+$('cyclic-preset').addEventListener('change', e => {
+  if (!e.target.value) return;
+  const [states, threshold, neighborhood, radius] = e.target.value.split(',');
+  form.states.value = states;
+  form.threshold.value = threshold;
+  form.neighborhood.value = neighborhood;
+  form.radius.value = radius;
+});
+for (const name of ['states', 'threshold', 'neighborhood', 'radius']) {
+  form[name].addEventListener('input', () => { $('cyclic-preset').value = ''; });
+}
+
+$('dice').addEventListener('click', () => {
+  form.seed.value = Math.floor(Math.random() * 1e6);
+  changed();
+});
+$('copy').addEventListener('click', () => navigator.clipboard.writeText($('cmdline').textContent));
+
+updateVisibility();
+render();
+</script>
+</body>
+</html>

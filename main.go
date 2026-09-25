@@ -53,6 +53,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.StringVar(&o.palette, "palette", "age", "colour gradient: age, bw, fire, ocean, viridis or mono")
 	fs.StringVar(&o.palFrom, "palette-from", "", "custom gradient start colour, RRGGBB (with -palette-to)")
 	fs.StringVar(&o.palTo, "palette-to", "", "custom gradient end colour, RRGGBB (with -palette-from)")
+	fs.StringVar(&o.serve, "serve", "", "serve the web page on this address (e.g. :8080) instead of writing a file")
 	return fs
 }
 
@@ -68,6 +69,8 @@ func main() {
 		for _, p := range Presets {
 			fmt.Printf("%-18s %s\n", p.Name, p.Rule)
 		}
+	case o.serve != "":
+		fail(1, serve(o.serve))
 	default:
 		o.gif = strings.EqualFold(filepath.Ext(o.out), ".gif")
 		var buf bytes.Buffer
