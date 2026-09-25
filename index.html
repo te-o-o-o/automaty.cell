@@ -191,7 +191,8 @@
   </div>
   <div id="cmd">
     <code id="cmdline"></code>
-    <button type="button" id="copy">Copier</button>
+    <button type="button" id="copy">Copier la commande</button>
+    <button type="button" id="link">Copier le lien</button>
     <a id="download" download>Télécharger</a>
   </div>
 </section>
@@ -238,18 +239,42 @@ function commandLine(opts) {
   return ['cellgen', ...args, `-o out.${format()}`].join(' ');
 }
 
+// Query string for the options: all of them for the server, or only the
+// changed ones for the page's own URL, which is then short enough to share.
+function query(opts, onlyChanged) {
+  const params = new URLSearchParams(opts.filter(([, , isDefault]) => !onlyChanged || !isDefault).map(([k, v]) => [k, v]));
+  if (!onlyChanged || format() !== 'png') params.set('format', format());
+  return params;
+}
+
+// Fill the form from [flag, value] pairs, as found in a shared URL.
+function applyParams(entries) {
+  for (const [k, v] of entries) {
+    if (k === 'format') $('format').value = v;
+    else if (k === 'cyclic') form.mode.value = v === 'true' ? 'cyclic' : 'rule';
+    else if (k === 'palette') { $('custom').checked = false; form.palette.value = v; }
+    else if (k === 'palette-from' || k === 'palette-to') { $('custom').checked = true; form[k].value = '#' + v; }
+    else if (form[k]?.type === 'checkbox') form[k].checked = v === 'true';
+    else if (form[k]) form[k].value = v;
+  }
+  const has = (select, value) => [...select.options].some(o => o.value === value);
+  $('preset').value = has($('preset'), form.rule.value) ? form.rule.value : '';
+  const cyc = [form.states.value, form.threshold.value, form.neighborhood.value, form.radius.value].join(',');
+  $('cyclic-preset').value = has($('cyclic-preset'), cyc) ? cyc : '';
+}
+
 let controller, timer;
 async function render() {
+  clearTimeout(timer);
   const opts = options();
   $('cmdline').textContent = commandLine(opts);
-  const params = new URLSearchParams(opts.map(([k, v]) => [k, v]));
-  params.set('format', format());
+  history.replaceState(null, '', '?' + query(opts, true));
 
   controller?.abort();
   controller = new AbortController();
   $('status').textContent = 'calcul…';
   try {
-    const res = await fetch('/render?' + params, { signal: controller.signal });
+    const res = await fetch('/render?' + query(opts, false), { signal: controller.signal });
     if (!res.ok) throw new Error(await res.text());
     const url = URL.createObjectURL(await res.blob());
     URL.revokeObjectURL($('img').src);
@@ -299,7 +324,9 @@ $('dice').addEventListener('click', () => {
   changed();
 });
 $('copy').addEventListener('click', () => navigator.clipboard.writeText($('cmdline').textContent));
+$('link').addEventListener('click', () => navigator.clipboard.writeText(location.href));
 
+applyParams(new URLSearchParams(location.search));
 updateVisibility();
 render();
 </script>
