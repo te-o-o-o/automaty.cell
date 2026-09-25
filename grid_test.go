@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"slices"
 	"testing"
 )
 
@@ -219,6 +220,108 @@ func TestPalette(t *testing.T) {
 	for _, bad := range []string{"", "fff", "gg0000", "1234567"} {
 		if _, err := parseHex(bad); err == nil {
 			t.Errorf("parseHex(%q): want error", bad)
+		}
+	}
+}
+
+// neighbours counts the cells within radius of (x, y) for which match is
+// true, in a Moore (square) or Von Neumann (diamond) neighbourhood.
+func (g *Grid) refNeighbours(x, y, radius int, vonNeumann bool, match func(uint8) bool) int {
+	n := 0
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			if dx == 0 && dy == 0 || vonNeumann && max(dx, -dx)+max(dy, -dy) > radius {
+				continue
+			}
+			nx, ny := x+dx, y+dy
+			if g.Wrap {
+				nx, ny = (nx+g.W)%g.W, (ny+g.H)%g.H
+			} else if nx < 0 || ny < 0 || nx >= g.W || ny >= g.H {
+				continue
+			}
+			if match(g.Cells[ny*g.W+nx]) {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// refStep is the original, straightforward Step, kept to check the fast one.
+func (g *Grid) refStep(r Rule) *Grid {
+	live := func(v uint8) bool { return v > 0 }
+	if r.States > 0 {
+		live = func(v uint8) bool { return v == 1 } // dying cells don't count
+	}
+	next := NewGrid(g.W, g.H, g.Wrap)
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			n, i := g.refNeighbours(x, y, 1, false, live), y*g.W+x
+			switch v := g.Cells[i]; {
+			case v == 0:
+				if r.Birth[n] {
+					next.Cells[i] = 1
+				}
+			case r.States == 0: // B/S: survivors age
+				if r.Survive[n] {
+					next.Cells[i] = max(v, v+1) // +1, saturating at 255
+				}
+			case v == 1 && r.Survive[n]:
+				next.Cells[i] = 1
+			default: // Generations: start or keep dying, back to 0 after the last state
+				next.Cells[i] = uint8((int(v) + 1) % r.States)
+			}
+		}
+	}
+	return next
+}
+
+// refStepCyclic is the original StepCyclic, kept to check the fast one.
+func (g *Grid) refStepCyclic(c Cyclic) *Grid {
+	next := NewGrid(g.W, g.H, g.Wrap)
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			i := y*g.W + x
+			k := g.Cells[i]
+			succ := uint8((int(k) + 1) % c.States)
+			next.Cells[i] = k
+			if g.refNeighbours(x, y, c.Radius, c.VonNeumann, func(v uint8) bool { return v == succ }) >= c.Threshold {
+				next.Cells[i] = succ
+			}
+		}
+	}
+	return next
+}
+
+// The fast steppers must match the straightforward ones exactly, with and
+// without wrapped edges, on grids too small for any interior (radius 3 on
+// 6 cells) and large enough to have one.
+func TestFastStepsMatchReference(t *testing.T) {
+	for _, wrap := range []bool{true, false} {
+		for _, rule := range []string{"B3/S23", "B3678/S34678", "2/23/8", "/2/3"} {
+			r, _ := ParseRule(rule)
+			g := NewGrid(37, 23, wrap)
+			g.Randomize(3, 0.4)
+			for i := 0; i < 30; i++ {
+				want, got := g.refStep(r), g.Step(r)
+				if !slices.Equal(want.Cells, got.Cells) {
+					t.Fatalf("%s wrap=%v: generation %d differs", rule, wrap, i)
+				}
+				g = got
+			}
+		}
+		for _, c := range []Cyclic{{14, 1, 1, true}, {8, 5, 3, false}, {6, 2, 2, true}, {4, 3, 1, false}} {
+			for _, size := range []int{6, 41} {
+				g := NewGrid(size, size+3, wrap)
+				g.RandomizeStates(5, c.States)
+				for i := 0; i < 30; i++ {
+					want, got := g.refStepCyclic(c), g.StepCyclic(c)
+					if !slices.Equal(want.Cells, got.Cells) {
+						t.Fatalf("%+v %dx%d wrap=%v: generation %d differs", c, size, size+3, wrap, i)
+					}
+					g = got
+				}
+			}
 		}
 	}
 }

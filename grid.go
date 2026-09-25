@@ -101,45 +101,56 @@ func (g *Grid) Mirror(n int) {
 	}
 }
 
-// neighbours counts the cells within radius of (x, y) for which match is
-// true, in a Moore (square) or Von Neumann (diamond) neighbourhood.
-func (g *Grid) neighbours(x, y, radius int, vonNeumann bool, match func(uint8) bool) int {
-	n := 0
-	for dy := -radius; dy <= radius; dy++ {
-		for dx := -radius; dx <= radius; dx++ {
-			if dx == 0 && dy == 0 || vonNeumann && max(dx, -dx)+max(dy, -dy) > radius {
-				continue
-			}
-			nx, ny := x+dx, y+dy
-			if g.Wrap {
-				nx, ny = (nx+g.W)%g.W, (ny+g.H)%g.H
-			} else if nx < 0 || ny < 0 || nx >= g.W || ny >= g.H {
-				continue
-			}
-			if match(g.Cells[ny*g.W+nx]) {
-				n++
-			}
-		}
-	}
-	return n
-}
-
 // Step returns the next generation under rule r.
 func (g *Grid) Step(r Rule) *Grid {
-	live := func(v uint8) bool { return v > 0 }
-	if r.States > 0 {
-		live = func(v uint8) bool { return v == 1 } // dying cells don't count
-	}
 	next := NewGrid(g.W, g.H, g.Wrap)
-	for y := 0; y < g.H; y++ {
-		for x := 0; x < g.W; x++ {
-			n, i := g.neighbours(x, y, 1, false, live), y*g.W+x
+	g.StepInto(next, r)
+	return next
+}
+
+// StepInto writes the next generation under rule r into next, a grid of the
+// same size (so callers can swap two grids instead of allocating one per
+// generation). Neighbours are counted directly: the rows above and below and
+// the columns left and right are found once, not per neighbour.
+func (g *Grid) StepInto(next *Grid, r Rule) {
+	W, H := g.W, g.H
+	generations := r.States > 0
+	for y := 0; y < H; y++ {
+		up, down := (y-1+H)%H, (y+1)%H
+		if !g.Wrap && y == 0 {
+			up = -1 // beyond the edge: dead
+		}
+		if !g.Wrap && y == H-1 {
+			down = -1
+		}
+		for x := 0; x < W; x++ {
+			left, right := (x-1+W)%W, (x+1)%W
+			hasLeft, hasRight := g.Wrap || x > 0, g.Wrap || x < W-1
+			n := 0
+			for _, row := range [3]int{up, y, down} {
+				if row < 0 {
+					continue
+				}
+				cells := g.Cells[row*W : row*W+W]
+				if hasLeft && alive(cells[left], generations) {
+					n++
+				}
+				if row != y && alive(cells[x], generations) {
+					n++
+				}
+				if hasRight && alive(cells[right], generations) {
+					n++
+				}
+			}
+
+			i := y*W + x
+			next.Cells[i] = 0
 			switch v := g.Cells[i]; {
 			case v == 0:
 				if r.Birth[n] {
 					next.Cells[i] = 1
 				}
-			case r.States == 0: // B/S: survivors age
+			case !generations: // B/S: survivors age
 				if r.Survive[n] {
 					next.Cells[i] = max(v, v+1) // +1, saturating at 255
 				}
@@ -150,24 +161,67 @@ func (g *Grid) Step(r Rule) *Grid {
 			}
 		}
 	}
-	return next
+}
+
+// alive reports whether a cell counts as a live neighbour: any age for B/S
+// rules, only state 1 for Generations (dying cells don't count).
+func alive(v uint8, generations bool) bool {
+	return v == 1 || v > 0 && !generations
 }
 
 // StepCyclic returns the next generation under cyclic rule c.
 func (g *Grid) StepCyclic(c Cyclic) *Grid {
 	next := NewGrid(g.W, g.H, g.Wrap)
-	for y := 0; y < g.H; y++ {
-		for x := 0; x < g.W; x++ {
-			i := y*g.W + x
+	g.StepCyclicInto(next, c)
+	return next
+}
+
+// StepCyclicInto writes the next generation under cyclic rule c into next.
+// The neighbourhood's offsets are listed once; cells at least Radius away
+// from the edges use them as plain index steps, the others wrap or skip.
+func (g *Grid) StepCyclicInto(next *Grid, c Cyclic) {
+	W, H, rad := g.W, g.H, c.Radius
+	type offset struct{ dx, dy, di int }
+	var offsets []offset
+	for dy := -rad; dy <= rad; dy++ {
+		for dx := -rad; dx <= rad; dx++ {
+			if dx == 0 && dy == 0 || c.VonNeumann && max(dx, -dx)+max(dy, -dy) > rad {
+				continue
+			}
+			offsets = append(offsets, offset{dx, dy, dy*W + dx})
+		}
+	}
+	for y := 0; y < H; y++ {
+		for x := 0; x < W; x++ {
+			i := y*W + x
 			k := g.Cells[i]
 			succ := uint8((int(k) + 1) % c.States)
+			n := 0
+			if x >= rad && x < W-rad && y >= rad && y < H-rad {
+				for _, o := range offsets {
+					if g.Cells[i+o.di] == succ {
+						n++
+					}
+				}
+			} else {
+				for _, o := range offsets {
+					nx, ny := x+o.dx, y+o.dy
+					if g.Wrap {
+						nx, ny = (nx+W)%W, (ny+H)%H
+					} else if nx < 0 || ny < 0 || nx >= W || ny >= H {
+						continue
+					}
+					if g.Cells[ny*W+nx] == succ {
+						n++
+					}
+				}
+			}
 			next.Cells[i] = k
-			if g.neighbours(x, y, c.Radius, c.VonNeumann, func(v uint8) bool { return v == succ }) >= c.Threshold {
+			if n >= c.Threshold {
 				next.Cells[i] = succ
 			}
 		}
 	}
-	return next
 }
 
 // ParseRule reads Golly-style B/S notation, e.g. "B3/S23" or "s23/b3", or

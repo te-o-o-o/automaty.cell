@@ -164,7 +164,7 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 			return nil, nil, nil, errors.New("cyclic: want 2 <= states <= 256, threshold >= 1, 1 <= radius < grid size")
 		}
 		g.RandomizeStates(o.seed, c.States)
-		step = func(g *Grid) *Grid { return g.StepCyclic(c) }
+		step = swapping(func(g, next *Grid) { g.StepCyclicInto(next, c) })
 		// Every state is a live colour, spread evenly.
 		pal = gr.palette(c.States, false, func(s int) float64 { return float64(s) / float64(c.States-1) })
 	} else {
@@ -173,7 +173,7 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 			return nil, nil, nil, err
 		}
 		g.Randomize(o.seed, o.density)
-		step = func(g *Grid) *Grid { return g.Step(r) }
+		step = swapping(func(g, next *Grid) { g.StepInto(next, r) })
 		if r.States > 0 {
 			// Generations: alive first, then dying states evenly.
 			pal = gr.palette(r.States, true, func(s int) float64 {
@@ -187,6 +187,22 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 
 	g.Mirror(o.symmetry)
 	return g, step, pal, nil
+}
+
+// swapping turns an in-place stepper into a step function that alternates
+// between two grids instead of allocating one per generation. The grid it
+// returns is only valid until the call after next, which is how generate and
+// activity use it.
+func swapping(into func(g, next *Grid)) func(*Grid) *Grid {
+	var spare *Grid
+	return func(g *Grid) *Grid {
+		if spare == nil {
+			spare = NewGrid(g.W, g.H, g.Wrap)
+		}
+		into(g, spare)
+		g, spare = spare, g
+		return g
+	}
 }
 
 func fail(code int, err error) {
