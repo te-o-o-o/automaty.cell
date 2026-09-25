@@ -91,6 +91,41 @@ func TestGenerations(t *testing.T) {
 	}
 }
 
+func TestCyclic(t *testing.T) {
+	c := Cyclic{States: 3, Threshold: 1, Radius: 1}
+	g := NewGrid(5, 5, false)
+	g.Cells[2*5+3] = 1                    // (3,2)=1 next to (2,2)=0: advances
+	g.Cells[0], g.Cells[1] = 2, 0         // (0,0)=2 next to (1,0)=0: wraps 2 -> 0
+	g.Cells[4*5+4], g.Cells[4*5+3] = 0, 2 // (4,4)=0 next to (3,4)=2 only: stays
+	next := g.StepCyclic(c)
+	for _, tc := range []struct {
+		x, y int
+		want uint8
+	}{{2, 2, 1}, {0, 0, 0}, {4, 4, 0}} {
+		if got := next.Cells[tc.y*5+tc.x]; got != tc.want {
+			t.Errorf("(%d,%d) = %d, want %d", tc.x, tc.y, got, tc.want)
+		}
+	}
+
+	// A diagonal neighbour counts for Moore, not for Von Neumann; and a
+	// threshold of 2 isn't reached with a single neighbour.
+	g = NewGrid(5, 5, false)
+	g.Cells[3*5+3] = 1
+	for _, tc := range []struct {
+		c    Cyclic
+		want uint8
+	}{
+		{Cyclic{States: 3, Threshold: 1, Radius: 1}, 1},
+		{Cyclic{States: 3, Threshold: 1, Radius: 1, VonNeumann: true}, 0},
+		{Cyclic{States: 3, Threshold: 1, Radius: 2, VonNeumann: true}, 1},
+		{Cyclic{States: 3, Threshold: 2, Radius: 1}, 0},
+	} {
+		if got := g.StepCyclic(tc.c).Cells[2*5+2]; got != tc.want {
+			t.Errorf("%+v: (2,2) = %d, want %d", tc.c, got, tc.want)
+		}
+	}
+}
+
 func TestParseRule(t *testing.T) {
 	r, err := ParseRule("s23/b36")
 	if err != nil || r != (Rule{Birth: [9]bool{3: true, 6: true}, Survive: [9]bool{2: true, 3: true}}) {

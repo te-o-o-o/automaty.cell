@@ -45,12 +45,20 @@ var Presets = []struct{ Name, Rule string }{
 	{"belzhab", "2/23/8"},
 }
 
+// Cyclic is a cyclic cellular automaton: a cell in state k moves to state
+// k+1 (mod States) when at least Threshold neighbours within Radius are
+// already in state k+1.
+type Cyclic struct {
+	States, Threshold, Radius int
+	VonNeumann                bool // false: Moore (square) neighbourhood
+}
+
 type Grid struct {
 	W, H int
 	Wrap bool // true: toroidal edges, false: cells beyond the edge are dead
 	// Cells is row-major, len W*H. For B/S rules a cell holds its age:
 	// 0 = dead, n = alive for n generations (saturates at 255). For
-	// Generations rules it holds the state.
+	// Generations and Cyclic rules it holds the state.
 	Cells []uint8
 }
 
@@ -78,12 +86,21 @@ func (g *Grid) Randomize(seed int64, density float64) {
 	}
 }
 
-// neighbours counts the cells around (x, y) for which live is true.
-func (g *Grid) neighbours(x, y int, live func(uint8) bool) int {
+// RandomizeStates gives every cell a uniformly random state in 0..n-1.
+func (g *Grid) RandomizeStates(seed int64, n int) {
+	r := rand.New(rand.NewSource(seed))
+	for i := range g.Cells {
+		g.Cells[i] = uint8(r.Intn(n))
+	}
+}
+
+// neighbours counts the cells within radius of (x, y) for which match is
+// true, in a Moore (square) or Von Neumann (diamond) neighbourhood.
+func (g *Grid) neighbours(x, y, radius int, vonNeumann bool, match func(uint8) bool) int {
 	n := 0
-	for dy := -1; dy <= 1; dy++ {
-		for dx := -1; dx <= 1; dx++ {
-			if dx == 0 && dy == 0 {
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			if dx == 0 && dy == 0 || vonNeumann && max(dx, -dx)+max(dy, -dy) > radius {
 				continue
 			}
 			nx, ny := x+dx, y+dy
@@ -92,7 +109,7 @@ func (g *Grid) neighbours(x, y int, live func(uint8) bool) int {
 			} else if nx < 0 || ny < 0 || nx >= g.W || ny >= g.H {
 				continue
 			}
-			if live(g.Cells[ny*g.W+nx]) {
+			if match(g.Cells[ny*g.W+nx]) {
 				n++
 			}
 		}
@@ -109,7 +126,7 @@ func (g *Grid) Step(r Rule) *Grid {
 	next := NewGrid(g.W, g.H, g.Wrap)
 	for y := 0; y < g.H; y++ {
 		for x := 0; x < g.W; x++ {
-			n, i := g.neighbours(x, y, live), y*g.W+x
+			n, i := g.neighbours(x, y, 1, false, live), y*g.W+x
 			switch v := g.Cells[i]; {
 			case v == 0:
 				if r.Birth[n] {
@@ -123,6 +140,23 @@ func (g *Grid) Step(r Rule) *Grid {
 				next.Cells[i] = 1
 			default: // Generations: start or keep dying, back to 0 after the last state
 				next.Cells[i] = uint8((int(v) + 1) % r.States)
+			}
+		}
+	}
+	return next
+}
+
+// StepCyclic returns the next generation under cyclic rule c.
+func (g *Grid) StepCyclic(c Cyclic) *Grid {
+	next := NewGrid(g.W, g.H, g.Wrap)
+	for y := 0; y < g.H; y++ {
+		for x := 0; x < g.W; x++ {
+			i := y*g.W + x
+			k := g.Cells[i]
+			succ := uint8((int(k) + 1) % c.States)
+			next.Cells[i] = k
+			if g.neighbours(x, y, c.Radius, c.VonNeumann, func(v uint8) bool { return v == succ }) >= c.Threshold {
+				next.Cells[i] = succ
 			}
 		}
 	}

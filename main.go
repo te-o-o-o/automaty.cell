@@ -21,6 +21,11 @@ func main() {
 	listRules := flag.Bool("list-rules", false, "list preset rules and exit")
 	wrap := flag.Bool("wrap", true, "toroidal edges; -wrap=false makes cells beyond the edge dead")
 	delay := flag.Int("delay", 5, "GIF frame delay in 1/100 s")
+	cyclic := flag.Bool("cyclic", false, "run a cyclic cellular automaton instead of -rule")
+	states := flag.Int("states", 14, "cyclic: number of states (2-256)")
+	threshold := flag.Int("threshold", 3, "cyclic: neighbours in the next state needed to advance")
+	neighborhood := flag.String("neighborhood", "moore", "cyclic: moore or vonneumann")
+	radius := flag.Int("radius", 1, "cyclic: neighbourhood radius")
 	palette := flag.String("palette", "age", "colour palette: age or bw")
 	flag.Parse()
 
@@ -36,37 +41,57 @@ func main() {
 		}
 	}
 
-	r, err := ParseRule(*rule)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "cellgen:", err)
-		os.Exit(2)
+	g := NewGrid(*w, *h, *wrap)
+	var step func(*Grid) *Grid
+	if *cyclic {
+		c := Cyclic{States: *states, Threshold: *threshold, Radius: *radius}
+		switch *neighborhood {
+		case "moore":
+		case "vonneumann":
+			c.VonNeumann = true
+		default:
+			fail(2, fmt.Errorf("unknown neighborhood %q (want moore or vonneumann)", *neighborhood))
+		}
+		if c.States < 2 || c.States > 256 || c.Threshold < 1 || c.Radius < 1 || c.Radius >= min(*w, *h) {
+			fail(2, fmt.Errorf("cyclic: want 2 <= states <= 256, threshold >= 1, 1 <= radius < grid size"))
+		}
+		g.RandomizeStates(*seed, c.States)
+		step = func(g *Grid) *Grid { return g.StepCyclic(c) }
+	} else {
+		r, err := ParseRule(*rule)
+		if err != nil {
+			fail(2, err)
+		}
+		g.Randomize(*seed, *density)
+		step = func(g *Grid) *Grid { return g.Step(r) }
 	}
 
 	pal, ok := palettes[*palette]
 	if !ok {
-		fmt.Fprintf(os.Stderr, "cellgen: unknown palette %q (want age or bw)\n", *palette)
-		os.Exit(2)
+		fail(2, fmt.Errorf("unknown palette %q (want age or bw)", *palette))
 	}
 
-	g := NewGrid(*w, *h, *wrap)
-	g.Randomize(*seed, *density)
-
+	var err error
 	if strings.EqualFold(filepath.Ext(*out), ".gif") {
 		// ponytail: all frames held in memory (W*H*scale² bytes each), stream if it gets too big
 		frames := []*image.Paletted{Render(g, *scale, pal)}
 		for i := 1; i < *gens; i++ {
-			g = g.Step(r)
+			g = step(g)
 			frames = append(frames, Render(g, *scale, pal))
 		}
 		err = WriteGIF(*out, frames, *delay)
 	} else {
 		for i := 1; i < *gens; i++ {
-			g = g.Step(r)
+			g = step(g)
 		}
 		err = WritePNG(*out, Render(g, *scale, pal))
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "cellgen:", err)
-		os.Exit(1)
+		fail(1, err)
 	}
+}
+
+func fail(code int, err error) {
+	fmt.Fprintln(os.Stderr, "cellgen:", err)
+	os.Exit(code)
 }
