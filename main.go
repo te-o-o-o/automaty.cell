@@ -17,7 +17,7 @@ func main() {
 	seed := flag.Int64("seed", 1, "random seed")
 	density := flag.Float64("density", 0.3, "initial fraction of live cells")
 	out := flag.String("o", "out.png", "output file")
-	rule := flag.String("rule", "B3/S23", "rule in B/S notation, or a preset name (see -list-rules)")
+	rule := flag.String("rule", "B3/S23", "rule in B/S (B3/S23) or Generations S/B/C (345/2/4) notation, or a preset name (see -list-rules)")
 	listRules := flag.Bool("list-rules", false, "list preset rules and exit")
 	wrap := flag.Bool("wrap", true, "toroidal edges; -wrap=false makes cells beyond the edge dead")
 	delay := flag.Int("delay", 5, "GIF frame delay in 1/100 s")

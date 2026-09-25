@@ -67,6 +67,30 @@ func TestBorders(t *testing.T) {
 	}
 }
 
+// In Generations rules, a live cell that doesn't survive dies one state at a
+// time, and dying cells don't count as live neighbours.
+func TestGenerations(t *testing.T) {
+	r, _ := ParseRule("345/2/4")
+	g := NewGrid(5, 5, false)
+	g.Cells[2*5+1], g.Cells[2*5+3] = 1, 1 // two live cells around (2,2)
+	g = g.Step(r)
+	if got := g.Cells[2*5+2]; got != 1 {
+		t.Fatalf("(2,2) with 2 live neighbours: state %d, want 1 (born)", got)
+	}
+	for _, want := range []uint8{2, 3, 0} {
+		if got := g.Cells[2*5+1]; got != want {
+			t.Fatalf("(1,2) state %d, want %d", got, want)
+		}
+		g = g.Step(r)
+	}
+
+	g = NewGrid(5, 5, false)
+	g.Cells[2*5+1], g.Cells[2*5+3] = 2, 2 // two dying cells around (2,2)
+	if got := g.Step(r).Cells[2*5+2]; got != 0 {
+		t.Fatalf("(2,2) with 2 dying neighbours: state %d, want 0", got)
+	}
+}
+
 func TestParseRule(t *testing.T) {
 	r, err := ParseRule("s23/b36")
 	if err != nil || r != (Rule{Birth: [9]bool{3: true, 6: true}, Survive: [9]bool{2: true, 3: true}}) {
@@ -78,7 +102,15 @@ func TestParseRule(t *testing.T) {
 	if r, _ := ParseRule("B3/S23"); r != Life {
 		t.Fatalf("B3/S23 != Life")
 	}
-	for _, bad := range []string{"", "B3", "B3/S23/X", "B9/S23", "B3/B23", "X3/S23"} {
+	r, err = ParseRule("345/2/4")
+	if err != nil || r != (Rule{Birth: [9]bool{2: true}, Survive: [9]bool{3: true, 4: true, 5: true}, States: 4}) {
+		t.Fatalf("345/2/4: got %v, %v", r, err)
+	}
+	if r, err := ParseRule("/2/3"); err != nil || r != (Rule{Birth: [9]bool{2: true}, States: 3}) {
+		t.Fatalf("/2/3: got %v, %v", r, err)
+	}
+	for _, bad := range []string{"", "B3", "B3/S23/X", "B9/S23", "B3/B23", "X3/S23",
+		"345/2/1", "345/2/", "9/2/3", "3/2/4/5", "B3/S23/4"} {
 		if _, err := ParseRule(bad); err == nil {
 			t.Errorf("ParseRule(%q): want error", bad)
 		}
