@@ -74,6 +74,18 @@ Lister les règles nommées :
 ./cellgen -list-rules
 ```
 
+## Page web
+
+```
+./cellgen -serve :8080
+```
+
+Puis ouvrir http://localhost:8080 : chaque option a son champ, le rendu se
+recalcule à chaque changement, et la commande CLI équivalente s'affiche sous
+l'image. La page utilise le même moteur que le CLI (même image au pixel près),
+avec des limites pour rester utilisable en ligne : grille de 400×400 au plus,
+échelle 8, 2000 générations, GIF de 200 millions de pixels, 2 rendus à la fois.
+
 ## Options
 
 | Flag | Défaut | Rôle |
@@ -95,6 +107,7 @@ Lister les règles nommées :
 | `-radius` | `1` | Cyclique : rayon du voisinage |
 | `-delay` | `5` | Délai entre images du GIF, en 1/100 s |
 | `-o` | `out.png` | Fichier de sortie : `.gif` produit une animation, sinon un PNG de la dernière génération |
+| `-serve` | | Sert la page web sur cette adresse (`:8080`) au lieu d'écrire un fichier |
 
 Chaque état est placé sur le dégradé :
 - B/S : selon l'âge de la cellule (échelle log), de la première couleur (vient de
