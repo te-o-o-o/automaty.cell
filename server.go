@@ -23,11 +23,11 @@ var indexTmpl = template.Must(template.New("index").Parse(indexHTML))
 // Limits for the web server only: a public page must not let one request
 // take the whole machine. The CLI has none.
 const (
-	maxSide   = 500           // cells per side
-	maxScale  = 8             // pixels per cell
-	maxGens   = 2000          // generations
-	maxWork   = 1_000_000_000 // cells × generations × neighbourhood size
-	maxPixels = 200_000_000   // GIF: pixels over all frames, held in memory
+	maxSide   = 500         // cells per side
+	maxScale  = 8           // pixels per cell
+	maxGens   = 2000        // generations
+	maxWork   = 111_000_000 // cells × generations: about 1 s at worst, whatever the rule
+	maxPixels = 80_000_000  // GIF: pixels over all frames, held in memory (about 80 MB)
 )
 
 // busy lets at most 2 renders run at once; other requests wait their turn.
@@ -130,10 +130,6 @@ func parseQuery(r *http.Request) (*options, error) {
 }
 
 func checkLimits(o *options) error {
-	n := 3 // neighbourhood side
-	if o.cyclic {
-		n = 2*o.radius + 1
-	}
 	switch {
 	case o.w > maxSide || o.h > maxSide:
 		return fmt.Errorf("grid is at most %d×%d cells here (use the CLI for more)", maxSide, maxSide)
@@ -141,10 +137,8 @@ func checkLimits(o *options) error {
 		return fmt.Errorf("scale is at most %d here", maxScale)
 	case o.gens > maxGens:
 		return fmt.Errorf("at most %d generations here", maxGens)
-	case o.radius > maxSide: // before the product below, which could overflow
-		return fmt.Errorf("radius is at most %d here", maxSide)
-	case o.w*o.h*o.gens*n*n > maxWork:
-		return errors.New("too much work for the web page: lower the grid size, generations or radius (or use the CLI)")
+	case o.w*o.h*o.gens > maxWork:
+		return errors.New("too much work for the web page: lower the grid size or generations (or use the CLI)")
 	case o.gif && o.w*o.h*o.scale*o.scale*o.gens > maxPixels:
 		return errors.New("GIF too large for the web page: lower the grid size, scale or generations (or use the CLI)")
 	}

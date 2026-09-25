@@ -60,6 +60,29 @@ func TestHandleRender(t *testing.T) {
 	}
 }
 
+// The work limit counts cells × generations whatever the rule: a big-radius
+// cyclic render is as welcome as Life, and GIFs are capped by memory.
+func TestCheckLimits(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		gif  bool
+		ok   bool
+	}{
+		{[]string{"-cyclic", "-radius=3", "-neighborhood=moore", "-states=8", "-threshold=5", "-gens=150"}, false, true},
+		{[]string{"-w=500", "-h=500", "-gens=444"}, false, true},
+		{[]string{"-w=500", "-h=500", "-gens=445"}, false, false},
+		{nil, true, true}, // the default GIF
+		{[]string{"-gens=140"}, true, false},
+	} {
+		var o options
+		newFlagSet(&o).Parse(tc.args)
+		o.gif = tc.gif
+		if err := checkLimits(&o); (err == nil) != tc.ok {
+			t.Errorf("%v gif=%v: %v, want ok=%v", tc.args, tc.gif, err, tc.ok)
+		}
+	}
+}
+
 // Surprises must be interesting GIFs that keep the grid and cell size, use
 // symmetry 8 only on square grids, and stay within the web page's limits.
 func TestSurprise(t *testing.T) {

@@ -104,7 +104,8 @@ l'image.
 
 La page utilise le même moteur que le CLI (même image au pixel près), avec des
 limites pour rester utilisable en ligne : grille de 500×500 au plus, échelle 8,
-2000 générations, GIF de 200 millions de pixels, 2 rendus à la fois.
+2000 générations, 111 millions de cellules × générations (environ 1 s de calcul
+au pire), GIF de 80 millions de pixels (environ 80 Mo), 2 rendus à la fois.
 
 ## Options
 
