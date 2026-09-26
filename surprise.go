@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -141,14 +142,18 @@ var lifeLikePresets = func() (rules []string) {
 	return rules
 }()
 
-// mutateLively returns a mutant of o's rule (see mutate) that looks
-// interesting with o's other settings, or the last mutant tried.
+// mutateLively returns a mutant of o's rule, 2 to 4 mutations away (see
+// mutate), that looks interesting with o's other settings, or the last
+// mutant tried. One mutation alone often looks just like the rule it came from.
 func mutateLively(rng *rand.Rand, o options) string {
 	rule := strings.ToUpper(resolvePreset(o.rule))
 	last := rule
 	for try := 0; try < 50; try++ {
-		m := mutate(rng, rule)
-		if _, err := ParseRule(m); err != nil || m == rule {
+		m := rule
+		for range 2 + rng.Intn(3) {
+			m = mutate(rng, m)
+		}
+		if _, err := ParseRule(m); err != nil || distance(m, rule) < 2 {
 			continue
 		}
 		last = m
@@ -160,6 +165,27 @@ func mutateLively(rng *rand.Rand, o options) string {
 	return last
 }
 
+// distance counts how many neighbour counts, plus the number of states, differ
+// between two rules in the same notation.
+func distance(a, b string) int {
+	pa, pb := strings.Split(a, "/"), strings.Split(b, "/")
+	n := 0
+	for i := range min(len(pa), len(pb)) {
+		if i == 2 { // Generations: the number of states
+			if pa[i] != pb[i] {
+				n++
+			}
+			continue
+		}
+		for d := '0'; d <= '8'; d++ {
+			if strings.ContainsRune(pa[i], d) != strings.ContainsRune(pb[i], d) {
+				n++
+			}
+		}
+	}
+	return n
+}
+
 // mutate flips one neighbour count in a B/S or Generations rule (never birth
 // on 0), or for Generations sometimes changes the number of states.
 func mutate(rng *rand.Rand, rule string) string {
@@ -169,7 +195,9 @@ func mutate(rng *rand.Rand, rule string) string {
 		if strings.Contains(digits, d) {
 			return strings.Replace(digits, d, "", 1)
 		}
-		return digits + d
+		b := []byte(digits + d)
+		slices.Sort(b)
+		return string(b)
 	}
 	if len(parts) == 3 { // S/B/C
 		switch rng.Intn(3) {

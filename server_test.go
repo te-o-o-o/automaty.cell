@@ -146,6 +146,21 @@ func TestTexts(t *testing.T) {
 	}
 }
 
+func TestDistance(t *testing.T) {
+	for _, tc := range []struct {
+		a, b string
+		want int
+	}{
+		{"B3/S23", "B3/S23", 0},
+		{"B3/S23", "B38/S2", 2},
+		{"345/2/4", "35/2/6", 2},
+	} {
+		if got := distance(tc.a, tc.b); got != tc.want {
+			t.Errorf("distance(%s, %s) = %d, want %d", tc.a, tc.b, got, tc.want)
+		}
+	}
+}
+
 // The cyclic defaults are lively, mutated presets stay valid rules, and
 // random gradients have 2 to 5 valid colours.
 func TestSurpriseHelpers(t *testing.T) {

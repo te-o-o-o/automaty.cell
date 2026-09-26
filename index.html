@@ -569,7 +569,7 @@ $('dice').addEventListener('click', () => {
 $('copy').addEventListener('click', () => navigator.clipboard.writeText($('cmdline').textContent));
 $('link').addEventListener('click', () => navigator.clipboard.writeText(location.href));
 $('surprise').addEventListener('click', surprise);
-// Mutate: one neighbour count of the rule changed, kept lively by the server.
+// Mutate: a few neighbour counts of the rule changed, kept lively by the server.
 $('mutate').addEventListener('click', async () => {
   $('status').textContent = T.jsSearching;
   try {
