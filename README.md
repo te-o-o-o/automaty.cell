@@ -21,7 +21,7 @@
   <tr>
     <td align="center"><img src="docs/blobs.gif" width="240" alt="Mirrored blobs of a Larger than Life rule"><br><sub>Globe, mirrored into four</sub></td>
     <td align="center"><img src="docs/swirls.gif" width="240" alt="Colourful swirls of a cyclic automaton"><br><sub>Cyclic, custom colours</sub></td>
-    <td align="center"><img src="docs/melt.gif" width="240" alt="Cyclic chaos melting into blobs, then rippling out again"><br><sub>Cyclic → Majority → cyclic, with <code>-at</code></sub></td>
+    <td align="center"><img src="docs/spiral.gif" width="240" alt="Dense lace mirrored eightfold, played back and forth"><br><sub>Generations 24/234/6, eightfold, back and forth</sub></td>
   </tr>
 </table>
 
@@ -47,8 +47,8 @@ go install github.com/te-o-o-o/automaty.cell@latest
 # A cyclic automaton in custom colours
 ./automaty.cell -cyclic -states 4 -threshold 3 -neighborhood moore -w 150 -h 150 -gens 120 -delay 6 -colors ff3b3b,ff3ee0,f7f33c,3ed4f7 -o swirls.gif
 
-# Changes during the run: cyclic chaos melts into Majority blobs, then ripples out again
-./automaty.cell -cyclic -states 8 -threshold 2 -neighborhood moore -w 300 -h 300 -scale 1 -gens 150 -delay 6 -palette cyber -at '50:rule=majority 90:cyclic=true 90:threshold=3 90:states=5' -o melt.gif
+# A Generations rule grown from a spiral, mirrored eightfold, looping back and forth
+./automaty.cell -rule=24/234/6 -seed=195067 -symmetry=8 -shape=spiral -density=0.47 -gens=60 -delay=2 -pingpong=true -w=280 -h=280 -colors='d2f2c0,1a6c7f,00e9f2,ff00fe' -o spiral.gif
 ```
 
 ## On your own image
