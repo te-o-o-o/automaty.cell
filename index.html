@@ -152,8 +152,8 @@
   #warning p { margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #warning strong { margin-right: 8px; color: var(--highlight); }
   #warning button { flex-shrink: 0; background: var(--highlight); color: var(--primary-text); border: 0; padding: 4px 8px; }
-  /* Collapsed: just the title and "Open", centred in the header. */
-  #warning.collapsed { flex: 0 0 auto; margin: 0 auto; }
+  /* Collapsed: just the title and "Open", where the full warning started. */
+  #warning.collapsed { flex: 0 0 auto; margin-right: auto; }
   #warning.collapsed .warning-text { display: none; }
   #warning.collapsed strong { margin-right: 0; }
   @media (max-width: 800px) {
