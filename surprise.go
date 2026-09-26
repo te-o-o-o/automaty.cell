@@ -117,7 +117,7 @@ func surprise(rng *rand.Rand, base options) options {
 		case family < 0.45:
 			o.rule = Presets[rng.Intn(len(Presets))].Rule
 		case family < 0.65:
-			o.rule = mutate(rng, lifeLikePresets[rng.Intn(len(lifeLikePresets))])
+			o.rule = mutate(rng, Presets[rng.Intn(len(Presets))].Rule)
 		default:
 			o.rule = randomRule(rng)
 		}
@@ -130,17 +130,6 @@ func surprise(rng *rand.Rand, base options) options {
 	}
 	return base // ponytail: 300 duds in a row never happened in tests; add a better fallback if it does
 }
-
-// lifeLikePresets are the preset rules mutate can handle: B/S and
-// Generations, not Larger than Life.
-var lifeLikePresets = func() (rules []string) {
-	for _, p := range Presets {
-		if !IsLtL(p.Rule) {
-			rules = append(rules, p.Rule)
-		}
-	}
-	return rules
-}()
 
 // minLook is how different a mutant must look from its rule: the largest
 // relative gap between their live, change and structure measures (see

@@ -5,13 +5,13 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -182,29 +182,20 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 	}
 	s := surprise(rand.New(rand.NewSource(time.Now().UnixNano())), *o)
 	w.Header().Set("Content-Type", "application/json")
-	reply := map[string]string{
-		"cyclic":       strconv.FormatBool(s.cyclic),
-		"rule":         s.rule,
-		"density":      strconv.FormatFloat(s.density, 'f', -1, 64),
-		"states":       strconv.Itoa(s.states),
-		"threshold":    strconv.Itoa(s.threshold),
-		"radius":       strconv.Itoa(s.radius),
-		"neighborhood": s.neighborhood,
-		"palette":      s.palette,
-		"seed":         strconv.FormatInt(s.seed, 10),
-		"symmetry":     s.symmetry,
-		"shape":        s.shape,
-		"at":           "",
-		"pingpong":     strconv.FormatBool(s.pingpong),
-		"noise":        strconv.FormatFloat(s.noise, 'f', -1, 64),
-		"format":       "gif",
-		"gens":         strconv.Itoa(s.gens),
-		"delay":        strconv.Itoa(s.delay),
-		"wrap":         strconv.FormatBool(s.wrap),
+	// Every flag, as the page's fields hold them, but those the page has no
+	// field for, and the mask it keeps.
+	reply := map[string]string{"format": "gif"}
+	cur := s
+	fs := newFlagSet(&cur) // resets cur to the defaults…
+	cur = s                // …so put the settings back
+	fs.VisitAll(func(f *flag.Flag) { reply[f.Name] = f.Value.String() })
+	for _, k := range []string{"o", "serve", "list-rules", "mcp", "mask"} {
+		delete(reply, k)
 	}
 	if s.colors != "" { // the page switches to a custom gradient
 		delete(reply, "palette")
-		reply["colors"] = s.colors
+	} else {
+		delete(reply, "colors")
 	}
 	json.NewEncoder(w).Encode(reply)
 }

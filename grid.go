@@ -67,12 +67,11 @@ func NewGrid(w, h int, wrap bool) *Grid {
 	return &Grid{W: w, H: h, Wrap: wrap, Cells: make([]uint8, w*h)}
 }
 
-// Randomize fills the grid so that roughly density of the cells are alive.
-// The same seed always gives the same grid.
+// Randomize brings roughly density of an empty grid's cells to life. The same
+// seed always gives the same grid.
 func (g *Grid) Randomize(seed int64, density float64) {
 	r := rand.New(rand.NewSource(seed))
 	for i := range g.Cells {
-		g.Cells[i] = 0
 		if r.Float64() < density {
 			g.Cells[i] = 1
 		}
@@ -137,7 +136,6 @@ func (g *Grid) RandomizeNoise(seed int64, density, scale float64) {
 	field := NoiseField(seed, g.W, g.H, scale)
 	r := rand.New(rand.NewSource(seed))
 	for i := range g.Cells {
-		g.Cells[i] = 0
 		if field[i] > 0.5 && r.Float64() < 2*density {
 			g.Cells[i] = 1
 		}
@@ -267,13 +265,6 @@ func (g *Grid) KeepShape(shape string) {
 	}
 }
 
-// Step returns the next generation under rule r.
-func (g *Grid) Step(r Rule) *Grid {
-	next := NewGrid(g.W, g.H, g.Wrap)
-	g.StepInto(next, r)
-	return next
-}
-
 // StepInto writes the next generation under rule r into next, a grid of the
 // same size (so callers can swap two grids instead of allocating one per
 // generation). Neighbours are counted directly: the rows above and below and
@@ -333,13 +324,6 @@ func (g *Grid) StepInto(next *Grid, r Rule) {
 // rules, only state 1 for Generations (dying cells don't count).
 func alive(v uint8, generations bool) bool {
 	return v == 1 || v > 0 && !generations
-}
-
-// StepCyclic returns the next generation under cyclic rule c.
-func (g *Grid) StepCyclic(c Cyclic) *Grid {
-	next := NewGrid(g.W, g.H, g.Wrap)
-	g.StepCyclicInto(next, c)
-	return next
 }
 
 // StepCyclicInto writes the next generation under cyclic rule c into next.

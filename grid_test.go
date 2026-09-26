@@ -553,3 +553,17 @@ func TestParseLtL(t *testing.T) {
 		}
 	}
 }
+
+// Step returns the next generation under rule r.
+func (g *Grid) Step(r Rule) *Grid {
+	next := NewGrid(g.W, g.H, g.Wrap)
+	g.StepInto(next, r)
+	return next
+}
+
+// StepCyclic returns the next generation under cyclic rule c.
+func (g *Grid) StepCyclic(c Cyclic) *Grid {
+	next := NewGrid(g.W, g.H, g.Wrap)
+	g.StepCyclicInto(next, c)
+	return next
+}
