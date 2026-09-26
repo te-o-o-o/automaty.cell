@@ -159,14 +159,25 @@ func (g *Grid) RandomizeStates(seed int64, n int) {
 }
 
 // symmetries maps each -symmetry mode to the transforms of a w×h grid whose
-// cells share one value: mirrors (2: left/right, 4: also top/bottom, 8: also
-// the diagonals) and rotations (r2: half turn, r4: quarter turns). 8 and r4
-// need a square grid. Rules treat every direction alike, so a symmetric start
-// stays symmetric.
+// cells share one value: mirrors (2: left/right, 2v: top/bottom, 4: both,
+// 8: also the diagonals, d: one diagonal, dd: both), rotations (r2: half turn,
+// r4: quarter turns), a glide reflection (g: shifted by half the width, then
+// flipped top/bottom) and tiles (t2, t3, t4: n×n copies). 8, r4, d and dd need
+// a square grid, g and tiles need wrapped edges and a divisible grid. Rules
+// treat every direction alike, so a symmetric start stays symmetric.
 var symmetries = map[string][]func(x, y, w, h int) (int, int){
-	"1": nil,
-	"2": {flipX},
-	"4": {flipX, flipY, turn2},
+	"1":  nil,
+	"2":  {flipX},
+	"2v": {flipY},
+	"d":  {func(x, y, w, h int) (int, int) { return y, x }},
+	"dd": {turn2,
+		func(x, y, w, h int) (int, int) { return y, x },
+		func(x, y, w, h int) (int, int) { return w - 1 - y, h - 1 - x }},
+	"g":  {func(x, y, w, h int) (int, int) { return (x + w/2) % w, h - 1 - y }},
+	"t2": tiles(2),
+	"t3": tiles(3),
+	"t4": tiles(4),
+	"4":  {flipX, flipY, turn2},
 	"8": {flipX, flipY, turn2,
 		func(x, y, w, h int) (int, int) { return y, x },
 		func(x, y, w, h int) (int, int) { return w - 1 - y, x },
@@ -181,6 +192,18 @@ var symmetries = map[string][]func(x, y, w, h int) (int, int){
 func flipX(x, y, w, h int) (int, int) { return w - 1 - x, y }
 func flipY(x, y, w, h int) (int, int) { return x, h - 1 - y }
 func turn2(x, y, w, h int) (int, int) { return w - 1 - x, h - 1 - y }
+
+// tiles returns the shifts of an n×n tiling: by i tiles across, j down.
+func tiles(n int) (ts []func(x, y, w, h int) (int, int)) {
+	for i := 0; i < n; i++ {
+		for j := 0; j < n; j++ {
+			if i+j > 0 {
+				ts = append(ts, func(x, y, w, h int) (int, int) { return (x + i*w/n) % w, (y + j*h/n) % h })
+			}
+		}
+	}
+	return ts
+}
 
 // Symmetrize makes the grid symmetric under a -symmetry mode: every cell takes
 // the value of the first cell of its group (the smallest x, then y), which

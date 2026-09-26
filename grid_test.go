@@ -145,12 +145,19 @@ func TestCyclic(t *testing.T) {
 	}
 }
 
-// A symmetric start (mirrors and rotations) stays symmetric as it evolves,
-// with any rule.
+// A symmetric start (mirrors, rotations, glide and tiles) stays symmetric as
+// it evolves, with any rule.
 func TestSymmetry(t *testing.T) {
-	const n = 20
+	const n = 24
 	for mode, wantSame := range map[string][]func(x, y int) (int, int){
 		"2":  {func(x, y int) (int, int) { return n - 1 - x, y }},
+		"2v": {func(x, y int) (int, int) { return x, n - 1 - y }},
+		"d":  {func(x, y int) (int, int) { return y, x }},
+		"dd": {func(x, y int) (int, int) { return y, x }, func(x, y int) (int, int) { return n - 1 - y, n - 1 - x }},
+		"g":  {func(x, y int) (int, int) { return (x + n/2) % n, n - 1 - y }},
+		"t2": {func(x, y int) (int, int) { return (x + n/2) % n, y }, func(x, y int) (int, int) { return x, (y + n/2) % n }},
+		"t3": {func(x, y int) (int, int) { return (x + n/3) % n, y }, func(x, y int) (int, int) { return x, (y + n/3) % n }},
+		"t4": {func(x, y int) (int, int) { return (x + n/4) % n, y }, func(x, y int) (int, int) { return x, (y + n/4) % n }},
 		"4":  {func(x, y int) (int, int) { return n - 1 - x, y }, func(x, y int) (int, int) { return x, n - 1 - y }},
 		"8":  {func(x, y int) (int, int) { return n - 1 - x, y }, func(x, y int) (int, int) { return y, x }},
 		"r2": {func(x, y int) (int, int) { return n - 1 - x, n - 1 - y }},
@@ -187,6 +194,29 @@ func TestSymmetry(t *testing.T) {
 	}
 	if mirrored {
 		t.Error("r2 gave a left/right mirror")
+	}
+
+	// Each mode only takes the grids it stays symmetric on.
+	for _, tc := range []struct {
+		mode string
+		w, h int
+		wrap bool
+		ok   bool
+	}{
+		{"d", 30, 30, false, true},
+		{"dd", 30, 20, true, false},
+		{"g", 30, 21, true, true},
+		{"g", 31, 20, true, false},
+		{"g", 30, 20, false, false},
+		{"t3", 30, 21, true, true},
+		{"t3", 30, 20, true, false},
+		{"t4", 32, 32, false, false},
+		{"x", 30, 30, true, false},
+	} {
+		o := options{symmetry: tc.mode, w: tc.w, h: tc.h, wrap: tc.wrap}
+		if err := o.checkSymmetry(); (err == nil) != tc.ok {
+			t.Errorf("%+v: %v, want ok=%v", tc, err, tc.ok)
+		}
 	}
 }
 

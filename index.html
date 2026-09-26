@@ -114,8 +114,8 @@
   .modes { display: flex; flex-wrap: wrap; gap: 4px 14px; }
   [hidden] { display: none !important; }
 
-  /* Symmetry as four "power-up" buttons: radios under their labels. */
-  .powers { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  /* Symmetry as "power-up" buttons: radios under their labels. */
+  .powers { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
   .powers label { position: relative; display: block; }
   .powers input { position: absolute; opacity: 0; }
   .powers span {
@@ -305,10 +305,17 @@
       <div class="powers" role="radiogroup" aria-labelledby="symmetry-label">
         <label><input type="radio" name="symmetry" value="1" checked><span>×1</span></label>
         <label title="{{.T.mirror}}"><input type="radio" name="symmetry" value="2"><span>×2</span></label>
+        <label title="{{.T.mirrorV}}"><input type="radio" name="symmetry" value="2v"><span>×2V</span></label>
         <label title="{{.T.mirror}}"><input type="radio" name="symmetry" value="4"><span>×4</span></label>
         <label title="{{.T.mirror}}, {{.T.squareOnly}}"><input type="radio" name="symmetry" value="8"><span>×8</span></label>
+        <label title="{{.T.diagonal}}, {{.T.squareOnly}}"><input type="radio" name="symmetry" value="d"><span>D</span></label>
+        <label title="{{.T.diagonals}}, {{.T.squareOnly}}"><input type="radio" name="symmetry" value="dd"><span>DD</span></label>
         <label title="{{.T.halfTurn}}"><input type="radio" name="symmetry" value="r2"><span>R2</span></label>
         <label title="{{.T.quarterTurns}}, {{.T.squareOnly}}"><input type="radio" name="symmetry" value="r4"><span>R4</span></label>
+        <label title="{{.T.glide}}, {{.T.wrapOnly}}"><input type="radio" name="symmetry" value="g"><span>G</span></label>
+        <label title="{{.T.tiles}} 2×2, {{.T.wrapOnly}}"><input type="radio" name="symmetry" value="t2"><span>T2</span></label>
+        <label title="{{.T.tiles}} 3×3, {{.T.wrapOnly}}"><input type="radio" name="symmetry" value="t3"><span>T3</span></label>
+        <label title="{{.T.tiles}} 4×4, {{.T.wrapOnly}}"><input type="radio" name="symmetry" value="t4"><span>T4</span></label>
       </div>
     </div>
     <label class="wide">{{.T.shape}}

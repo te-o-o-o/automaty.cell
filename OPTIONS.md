@@ -18,7 +18,7 @@ name; the command line below the image shows the ones you changed.
 - `-seed` — the random seed: the same seed always gives the same image.
 - `-density` — the share of cells alive at the start (B/S, Generations and Larger than Life).
 - `-noise` — starts in Perlin noise islands about this many cells wide instead of plain random (`0` turns it off).
-- `-symmetry` — makes the start symmetric: mirrors `2`, `4`, `8` or rotations `r2`, `r4` (`8` and `r4` need a square grid).
+- `-symmetry` — makes the start symmetric: mirrors `2` (left/right), `2v` (top/bottom), `4`, `8`, `d` (one diagonal), `dd` (both), rotations `r2`, `r4`, a glide reflection `g`, or tiles `t2`, `t3`, `t4` (n×n copies). `8`, `r4`, `d` and `dd` need a square grid; `g` and the tiles need `-wrap` and a width (and, for tiles, a height) divisible by 2, 3 or 4.
 - `-shape` — keeps the start inside a shape (`dot`, `disc`, `ring`, `cross`, `frame`, `stripes`, `target`, `checker`, `spiral`), dead everywhere else, or starts from a single methuselah (`rpentomino`, `acorn`, `diehard`).
 - `-mask` — an image whose light (or opaque) areas are the only place cells may live, from start to end.
 

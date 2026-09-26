@@ -90,14 +90,14 @@ func TestCheckLimits(t *testing.T) {
 }
 
 // Surprises must be interesting GIFs that keep the grid and cell size, use
-// symmetry 8 or r4 only on square grids, and stay within the web page's limits.
+// a symmetry that fits the grid, and stay within the web page's limits.
 func TestSurprise(t *testing.T) {
 	var base options
 	newFlagSet(&base).Parse([]string{"-w=120", "-h=80"})
 	rng := rand.New(rand.NewSource(1))
 	for i := 0; i < 10; i++ {
 		o := surprise(rng, base)
-		if !interesting(o) || !o.gif || o.w != 120 || o.h != 80 || o.symmetry == "8" || o.symmetry == "r4" || checkLimits(&o) != nil {
+		if !interesting(o) || !o.gif || o.w != 120 || o.h != 80 || o.checkSymmetry() != nil || checkLimits(&o) != nil {
 			t.Fatalf("surprise %d: %+v, limits: %v", i, o, checkLimits(&o))
 		}
 	}

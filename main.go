@@ -50,7 +50,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.Int64Var(&o.seed, "seed", 1, "random seed")
 	fs.Float64Var(&o.density, "density", 0.3, "initial fraction of live cells")
 	fs.Float64Var(&o.noise, "noise", 0, "start in Perlin noise blobs about this many cells wide (0: plain random)")
-	fs.StringVar(&o.symmetry, "symmetry", "1", "symmetric start: 1 (none), mirrors 2, 4 or 8, rotations r2 or r4 (8 and r4 need a square grid)")
+	fs.StringVar(&o.symmetry, "symmetry", "1", "symmetric start: 1 (none), mirrors 2, 2v, 4, 8, d or dd, rotations r2 or r4, glide g, tiles t2, t3 or t4 (8, r4, d and dd need a square grid; g and tiles need -wrap and a divisible grid)")
 	fs.StringVar(&o.shape, "shape", "all", "start area, dead outside: "+strings.Join(shapes, ", "))
 	fs.StringVar(&o.at, "at", "", "changes during the run, space-separated GEN:FLAG=VALUE (e.g. '80:rule=bosco 150:palette=candy'), FLAG one of "+strings.Join(liveFlags, ", "))
 	fs.StringVar(&o.out, "o", "out.png", "output file: .png (last generation), .gif (animation) or .zip (one PNG per generation)")
@@ -181,6 +181,25 @@ func pingpong[T any](frames []T) []T {
 	return frames
 }
 
+// checkSymmetry checks that -symmetry exists and fits the grid: square for the
+// diagonals and quarter turns, wrapped and divisible for the glide and tiles.
+func (o *options) checkSymmetry() error {
+	n := map[string]int{"g": 2, "t2": 2, "t3": 3, "t4": 4}[o.symmetry]
+	switch {
+	case symmetries[o.symmetry] == nil && o.symmetry != "1":
+		return fmt.Errorf("symmetry %q: want 1, 2, 2v, 4, 8, d, dd, r2, r4, g, t2, t3 or t4", o.symmetry)
+	case slices.Contains([]string{"8", "r4", "d", "dd"}, o.symmetry) && o.w != o.h:
+		return fmt.Errorf("symmetry %s needs a square grid (w = h)", o.symmetry)
+	case n > 0 && !o.wrap:
+		return fmt.Errorf("symmetry %s needs wrapped edges (-wrap)", o.symmetry)
+	case o.symmetry == "g" && o.w%2 != 0:
+		return errors.New("symmetry g needs an even width")
+	case n > 0 && o.symmetry != "g" && (o.w%n != 0 || o.h%n != 0):
+		return fmt.Errorf("symmetry %s needs w and h divisible by %d", o.symmetry, n)
+	}
+	return nil
+}
+
 // setup checks the options and returns the starting grid, the function that
 // computes the next generation, and the palette of the last generation
 // computed (-at may change it on the way).
@@ -188,12 +207,10 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal func() color.Pal
 	if o.w < 1 || o.h < 1 || o.scale < 1 || o.gens < 1 {
 		return nil, nil, nil, errors.New("want w, h, scale and gens >= 1")
 	}
-	switch {
-	case symmetries[o.symmetry] == nil && o.symmetry != "1":
-		return nil, nil, nil, fmt.Errorf("symmetry %q: want 1, 2, 4, 8, r2 or r4", o.symmetry)
-	case (o.symmetry == "8" || o.symmetry == "r4") && o.w != o.h:
-		return nil, nil, nil, fmt.Errorf("symmetry %s needs a square grid (w = h)", o.symmetry)
-	case !slices.Contains(shapes, o.shape):
+	if err := o.checkSymmetry(); err != nil {
+		return nil, nil, nil, err
+	}
+	if !slices.Contains(shapes, o.shape) {
 		return nil, nil, nil, fmt.Errorf("shape %q: want one of %s", o.shape, strings.Join(shapes, ", "))
 	}
 	if o.noise < 0 {

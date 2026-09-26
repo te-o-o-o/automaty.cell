@@ -88,10 +88,6 @@ func surprise(rng *rand.Rand, base options) options {
 		if rng.Float64() < 0.35 {
 			o.colors = randomColors(rng)
 		}
-		o.symmetry = []string{"1", "1", "2", "4", "8", "r2", "r4"}[rng.Intn(7)]
-		if (o.symmetry == "8" || o.symmetry == "r4") && o.w != o.h {
-			o.symmetry = "r2"
-		}
 		o.shape = "all"
 		o.at = "" // changes made for the old settings would not fit the new ones
 		if rng.Intn(3) == 0 {
@@ -102,6 +98,10 @@ func surprise(rng *rand.Rand, base options) options {
 		o.gens = 60 + rng.Intn(91)
 		o.delay = []int{3, 5, 8, 12}[rng.Intn(4)]
 		o.wrap = rng.Float64() < 0.75
+		o.symmetry = []string{"1", "1", "2", "2v", "4", "8", "d", "dd", "r2", "r4", "g", "t2", "t3", "t4"}[rng.Intn(14)]
+		if o.checkSymmetry() != nil {
+			o.symmetry = "r2"
+		}
 
 		o.cyclic = false
 		o.density = 0.05 + float64(rng.Intn(66))/100

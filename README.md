@@ -72,8 +72,9 @@ its opaque ones, for a cut-out logo), ready to map onto a façade or a logo.
 - **Rules**: any B/S rule (Game of Life and co, in Golly's notation), Generations,
   Larger than Life over big neighbourhoods, and cyclic automata. 21 named presets
   (`-list-rules`).
-- **Starts**: random or Perlin noise islands, mirror and rotation symmetries,
-  shapes (disc, ring, spiral…), methuselahs, or an image mask to map onto a façade.
+- **Starts**: random or Perlin noise islands, mirror, rotation, glide and tiling
+  symmetries, shapes (disc, ring, spiral…), methuselahs, or an image mask to map
+  onto a façade.
 - **Changes during the run** with `-at`: switch the rule, palette or edges at a
   given generation while the cells carry on.
 - **Output**: the last generation as PNG, an animated GIF (back-and-forth loops
