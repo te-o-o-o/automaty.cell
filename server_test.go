@@ -300,3 +300,21 @@ func TestRenderMaskAndZip(t *testing.T) {
 		}
 	}
 }
+
+// Mutate returns a different, valid rule, and refuses the cyclic mode.
+func TestMutate(t *testing.T) {
+	rec := httptest.NewRecorder()
+	handleMutate(rec, httptest.NewRequest("GET", "/mutate?rule=life&w=40&h=40", nil))
+	var got map[string]string
+	json.NewDecoder(rec.Body).Decode(&got)
+	if _, err := ParseRule(got["rule"]); rec.Code != http.StatusOK || err != nil || got["rule"] == "B3/S23" {
+		t.Errorf("mutate life: status %d, rule %q, %v", rec.Code, got["rule"], err)
+	}
+	for _, q := range []string{"cyclic=true", "rule=nope"} {
+		rec := httptest.NewRecorder()
+		handleMutate(rec, httptest.NewRequest("GET", "/mutate?"+q, nil))
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("mutate %s: status %d, want 400", q, rec.Code)
+		}
+	}
+}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"math"
 	"slices"
 	"testing"
 )
@@ -376,5 +377,55 @@ func TestFastStepsMatchReference(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+// Perlin noise is in [0, 1], the same for the same seed, smooth from cell to
+// cell, and not flat.
+func TestNoise(t *testing.T) {
+	a, b := NoiseField(3, 60, 40, 20), NoiseField(3, 60, 40, 20)
+	if !slices.Equal(a, b) {
+		t.Fatal("same seed, different noise")
+	}
+	lo, hi, step := 1.0, 0.0, 0.0
+	for i, v := range a {
+		lo, hi = min(lo, v), max(hi, v)
+		if i%60 != 59 {
+			step += math.Abs(a[i+1] - v)
+		}
+	}
+	if lo < 0 || hi > 1 || hi-lo < 0.3 || step/float64(len(a)) > 0.05 {
+		t.Errorf("range %.2f-%.2f, mean step %.3f", lo, hi, step/float64(len(a)))
+	}
+}
+
+// Perlin starts are islands: no cell is born where the noise is low.
+func TestNoiseIslands(t *testing.T) {
+	const w, h = 60, 40
+	field := NoiseField(3, w, h, 15)
+	g := NewGrid(w, h, true)
+	g.RandomizeNoise(3, 0.3, 15)
+	inside, live := 0, 0
+	for i, f := range field {
+		if f <= 0.5 && g.Cells[i] != 0 {
+			t.Fatalf("cell %d alive outside the islands", i)
+		}
+		if f > 0.5 {
+			inside++
+			live += int(g.Cells[i])
+		}
+	}
+	if inside == 0 || float64(live)/float64(inside) < 0.4 {
+		t.Errorf("islands too sparse: %d live of %d", live, inside)
+	}
+}
+
+// A one-colour gradient (bw) still gives cyclic states different shades.
+func TestCyclicBW(t *testing.T) {
+	var o options
+	newFlagSet(&o).Parse([]string{"-cyclic", "-palette=bw", "-w=20", "-h=20"})
+	_, _, pal, err := o.setup()
+	if err != nil || len(pal) < 3 || pal[1] == pal[len(pal)-1] {
+		t.Fatalf("palette %v, %v", pal, err)
 	}
 }

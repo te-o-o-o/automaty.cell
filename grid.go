@@ -73,6 +73,72 @@ func (g *Grid) Randomize(seed int64, density float64) {
 	}
 }
 
+// NoiseField returns fractal Perlin noise in [0, 1] for every cell, in blobs
+// about scale cells wide; the same seed gives the same field.
+// ponytail: not periodic, so wrapped edges show a seam; tile the lattice if it matters
+func NoiseField(seed int64, w, h int, scale float64) []float64 {
+	var perm [512]int
+	for i, v := range rand.New(rand.NewSource(seed)).Perm(256) {
+		perm[i], perm[i+256] = v, v
+	}
+	grad := func(hash int, dx, dy float64) float64 {
+		switch hash & 3 {
+		case 0:
+			return dx + dy
+		case 1:
+			return -dx + dy
+		case 2:
+			return dx - dy
+		}
+		return -dx - dy
+	}
+	fade := func(t float64) float64 { return t * t * t * (t*(t*6-15) + 10) }
+	lerp := func(t, a, b float64) float64 { return a + t*(b-a) }
+	noise := func(x, y float64) float64 { // about -1..1
+		xi, yi := int(math.Floor(x))&255, int(math.Floor(y))&255
+		x, y = x-math.Floor(x), y-math.Floor(y)
+		u, v := fade(x), fade(y)
+		a, b := perm[xi]+yi, perm[xi+1]+yi
+		return lerp(v,
+			lerp(u, grad(perm[a], x, y), grad(perm[b], x-1, y)),
+			lerp(u, grad(perm[a+1], x, y-1), grad(perm[b+1], x-1, y-1)))
+	}
+	field := make([]float64, w*h)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			n, amp, freq := 0.0, 1.0, 1/scale
+			for octave := 0; octave < 3; octave++ { // big blobs with finer detail
+				n += amp * noise(float64(x)*freq, float64(y)*freq)
+				amp, freq = amp/2, freq*2
+			}
+			field[y*w+x] = min(1, max(0, (n/1.75+1)/2))
+		}
+	}
+	return field
+}
+
+// RandomizeNoise is Randomize in Perlin islands: cells are only born in the
+// upper half of the noise, twice as dense, so the overall density stays about
+// the same and the islands are clear enough to survive the first generations.
+func (g *Grid) RandomizeNoise(seed int64, density, scale float64) {
+	field := NoiseField(seed, g.W, g.H, scale)
+	r := rand.New(rand.NewSource(seed))
+	for i := range g.Cells {
+		g.Cells[i] = 0
+		if field[i] > 0.5 && r.Float64() < 2*density {
+			g.Cells[i] = 1
+		}
+	}
+}
+
+// RandomizeStatesNoise is RandomizeStates in Perlin blobs: states follow the
+// noise, wrapping around three times, so waves start from smooth gradients.
+func (g *Grid) RandomizeStatesNoise(seed int64, n int, scale float64) {
+	for i, f := range NoiseField(seed, g.W, g.H, scale) {
+		g.Cells[i] = uint8(int(f*float64(n)*3) % n)
+	}
+}
+
 // RandomizeStates gives every cell a uniformly random state in 0..n-1.
 func (g *Grid) RandomizeStates(seed int64, n int) {
 	r := rand.New(rand.NewSource(seed))

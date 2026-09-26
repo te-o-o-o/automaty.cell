@@ -25,7 +25,7 @@ type options struct {
 	seed                      int64
 	symmetry, shape           string
 	pingpong                  bool
-	density                   float64
+	density, noise            float64
 	rule                      string
 	wrap                      bool
 	delay                     int
@@ -48,6 +48,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.IntVar(&o.gens, "gens", 100, "number of generations to run")
 	fs.Int64Var(&o.seed, "seed", 1, "random seed")
 	fs.Float64Var(&o.density, "density", 0.3, "initial fraction of live cells")
+	fs.Float64Var(&o.noise, "noise", 0, "start in Perlin noise blobs about this many cells wide (0: plain random)")
 	fs.StringVar(&o.symmetry, "symmetry", "1", "symmetric start: 1 (none), mirrors 2, 4 or 8, rotations r2 or r4 (8 and r4 need a square grid)")
 	fs.StringVar(&o.shape, "shape", "all", "start area, dead outside: "+strings.Join(shapes, ", "))
 	fs.StringVar(&o.out, "o", "out.png", "output file: .png (last generation), .gif (animation) or .zip (one PNG per generation)")
@@ -154,6 +155,16 @@ func (o *options) generate(w io.Writer) error {
 	return png.Encode(w, Render(g, o.scale, pal))
 }
 
+// resolvePreset returns the rule a preset name stands for, or rule itself.
+func resolvePreset(rule string) string {
+	for _, p := range Presets {
+		if strings.EqualFold(rule, p.Name) {
+			return p.Rule
+		}
+	}
+	return rule
+}
+
 // pingpong appends the frames again, backward, without repeating the ends,
 // so the sequence loops without a jump.
 func pingpong[T any](frames []T) []T {
@@ -177,11 +188,8 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 	case !slices.Contains(shapes, o.shape):
 		return nil, nil, nil, fmt.Errorf("shape %q: want one of %s", o.shape, strings.Join(shapes, ", "))
 	}
-	rule := o.rule
-	for _, p := range Presets {
-		if strings.EqualFold(rule, p.Name) {
-			rule = p.Rule
-		}
+	if o.noise < 0 {
+		return nil, nil, nil, errors.New("want noise >= 0")
 	}
 
 	gr, ok := gradients[o.palette]
@@ -204,7 +212,8 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 	}
 
 	g = NewGrid(o.w, o.h, o.wrap)
-	if o.cyclic {
+	switch {
+	case o.cyclic:
 		c := Cyclic{States: o.states, Threshold: o.threshold, Radius: o.radius}
 		switch o.neighborhood {
 		case "moore":
@@ -216,16 +225,28 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 		if c.States < 2 || c.States > 256 || c.Threshold < 1 || c.Radius < 1 || c.Radius >= min(o.w, o.h) {
 			return nil, nil, nil, errors.New("cyclic: want 2 <= states <= 256, threshold >= 1, 1 <= radius < grid size")
 		}
-		g.RandomizeStates(o.seed, c.States)
+		if o.noise > 0 {
+			g.RandomizeStatesNoise(o.seed, c.States, o.noise)
+		} else {
+			g.RandomizeStates(o.seed, c.States)
+		}
 		step = swapping(func(g, next *Grid) { g.StepCyclicInto(next, c) })
-		// Every state is a live colour, spread evenly.
+		// Every state is a live colour, spread evenly; a one-colour gradient
+		// (bw) fades from its background, or every state would look the same.
+		if len(gr.stops) == 1 {
+			gr.stops = []color.RGBA{gr.bg, gr.stops[0]}
+		}
 		pal = gr.palette(c.States, false, func(s int) float64 { return float64(s) / float64(c.States-1) })
-	} else {
-		r, err := ParseRule(rule)
+	default:
+		r, err := ParseRule(resolvePreset(o.rule))
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		g.Randomize(o.seed, o.density)
+		if o.noise > 0 {
+			g.RandomizeNoise(o.seed, o.density, o.noise)
+		} else {
+			g.Randomize(o.seed, o.density)
+		}
 		step = swapping(func(g, next *Grid) { g.StepInto(next, r) })
 		if r.States > 0 {
 			// Generations: alive first, then dying states evenly.

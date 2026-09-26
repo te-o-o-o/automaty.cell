@@ -111,7 +111,7 @@
   #surprise:disabled { opacity: 0.6; cursor: wait; }
   .row { display: flex; gap: 6px; }
   .row > :first-child { flex: 1; }
-  .modes { display: flex; gap: 14px; }
+  .modes { display: flex; flex-wrap: wrap; gap: 4px 14px; }
   [hidden] { display: none !important; }
 
   /* Symmetry as four "power-up" buttons: radios under their labels. */
@@ -251,7 +251,7 @@
       </select>
     </label>
     <label class="wide" data-mode="rule">{{.T.rule}}
-      <input name="rule" value="B3/S23">
+      <span class="row"><input name="rule" value="B3/S23"><button type="button" id="mutate" title="{{.T.mutateTitle}}">{{.T.mutate}}</button></span>
     </label>
 
     <label class="wide" data-mode="cyclic">{{.T.preset}}
@@ -274,6 +274,7 @@
     </label>
     <label data-mode="cyclic">{{.T.radius}} <input name="radius" type="number" min="1" value="1"></label>
     <p id="cyclic-hint" class="wide hint" hidden>{{.T.cyclicHint}}</p>
+
   </fieldset>
 
   <fieldset>
@@ -318,6 +319,9 @@
     </label>
     <label class="wide" title="{{.T.maskHint}}">{{.T.mask}}
       <span class="row"><input type="file" id="mask" accept="image/png,image/jpeg"><button type="button" id="mask-clear" aria-label="{{.T.clearMask}}" title="{{.T.clearMask}}">×</button></span>
+    </label>
+    <label class="wide" data-mode="rule cyclic">{{.T.noise}} : <output id="noise-out">0</output>
+      <input name="noise" type="range" min="0" max="80" step="5" value="0">
     </label>
     <label class="wide" data-mode="rule">{{.T.density}} : <output id="density-out">0.3</output>
       <input name="density" type="range" min="0" max="1" step="0.01" value="0.3">
@@ -393,13 +397,14 @@ function setColors(list) {
 
 // Show only the fields that apply to the current mode, format and palette.
 function updateVisibility() {
-  for (const el of form.querySelectorAll('[data-mode]')) el.hidden = el.dataset.mode !== mode();
+  for (const el of form.querySelectorAll('[data-mode]')) el.hidden = !el.dataset.mode.split(' ').includes(mode());
   for (const el of form.querySelectorAll('[data-format]')) el.hidden = el.dataset.format !== format();
   for (const el of form.querySelectorAll('[data-custom]')) el.hidden = !custom();
   form.palette.disabled = custom();
   const cyc = [form.neighborhood.value, form.radius.value, form.states.value, form.threshold.value].join(',');
   $('cyclic-hint').hidden = mode() !== 'cyclic' || LIVELY.has(cyc);
   $('density-out').value = form.density.value;
+  $('noise-out').value = form.noise.value;
   $('palette-preview').style.background = custom()
     ? `linear-gradient(90deg, ${colors().join(', ')})`
     : form.palette.selectedOptions[0].dataset.gradient;
@@ -550,6 +555,21 @@ $('dice').addEventListener('click', () => {
 $('copy').addEventListener('click', () => navigator.clipboard.writeText($('cmdline').textContent));
 $('link').addEventListener('click', () => navigator.clipboard.writeText(location.href));
 $('surprise').addEventListener('click', surprise);
+// Mutate: one neighbour count of the rule changed, kept lively by the server.
+$('mutate').addEventListener('click', async () => {
+  $('status').textContent = T.jsSearching;
+  try {
+    const res = await fetch('/mutate?' + query(options(), false));
+    if (!res.ok) throw new Error(await res.text());
+    form.rule.value = (await res.json()).rule;
+    $('preset').value = '';
+    changed();
+  } catch (err) {
+    $('error').hidden = false;
+    $('error').textContent = err.message;
+    $('status').textContent = '';
+  }
+});
 $('mask-clear').addEventListener('click', () => { $('mask').value = ''; changed(); });
 // Every generation as a PNG in a ZIP, for video mapping tools.
 $('zip').addEventListener('click', async () => {

@@ -66,8 +66,8 @@ func neighborhoodName(vonNeumann bool) string {
 // surprise returns random settings on top of base, retrying until the
 // automaton looks interesting. It varies the family (a lively cyclic setting,
 // a preset, a mutated preset or a random rule), density, colours (a palette
-// or a random gradient), seed, symmetry, start shape, and the animation (a
-// GIF): generations, speed, edges and ping-pong. The grid size and cell size stay those of
+// or a random gradient), seed, symmetry, start shape, Perlin blobs, and the
+// animation (a GIF): generations, speed, edges and ping-pong. The grid size and cell size stay those of
 // base; generations are cut if needed to stay within the web page's limits.
 func surprise(rng *rand.Rand, base options) options {
 	var colourful []string // every gradient but black and white
@@ -103,6 +103,10 @@ func surprise(rng *rand.Rand, base options) options {
 
 		o.cyclic = false
 		o.density = 0.05 + float64(rng.Intn(66))/100
+		o.noise = 0
+		if rng.Intn(3) == 0 {
+			o.noise = float64(15 + rng.Intn(56))
+		}
 		switch {
 		case family < 0.25:
 			c := livelySettings[rng.Intn(len(livelySettings))]
@@ -123,6 +127,25 @@ func surprise(rng *rand.Rand, base options) options {
 		}
 	}
 	return base // ponytail: 300 duds in a row never happened in tests; add a better fallback if it does
+}
+
+// mutateLively returns a mutant of o's rule (see mutate) that looks
+// interesting with o's other settings, or the last mutant tried.
+func mutateLively(rng *rand.Rand, o options) string {
+	rule := strings.ToUpper(resolvePreset(o.rule))
+	last := rule
+	for try := 0; try < 50; try++ {
+		m := mutate(rng, rule)
+		if _, err := ParseRule(m); err != nil || m == rule {
+			continue
+		}
+		last = m
+		o.rule = m
+		if interesting(o) {
+			return m
+		}
+	}
+	return last
 }
 
 // mutate flips one neighbour count in a B/S or Generations rule (never birth

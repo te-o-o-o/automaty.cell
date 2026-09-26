@@ -69,6 +69,14 @@ least `-threshold` neighbours are already in state k+1:
 ./automaty.cell -cyclic -states 6 -threshold 2 -radius 2 -neighborhood vonneumann -gens 400 -scale 3 -o maze-spirals.png
 ```
 
+Perlin noise islands instead of a plain random start: cells are only born
+inside the blobs, which keeps clear continents:
+
+```
+./automaty.cell -rule daynight -density 0.5 -noise 40 -gens 150 -palette ocean -o continents.png
+./automaty.cell -cyclic -noise 60 -gens 60 -palette rainbow -o waves.png
+```
+
 Symmetric starts (mandalas and kaleidoscopes): the random start is mirrored,
 and since the rules treat every direction alike, the pattern stays symmetric:
 
@@ -115,10 +123,12 @@ List the named rules:
 Then open http://localhost:8080: every option has its field, the image
 re-renders on every change, and the equivalent command line shows below it.
 
-- **? RANDOM** picks a rule (B/S, Generations or cyclic), colours, a seed, a
-  symmetry, a start shape and an animation (GIF: speed, length, edges,
+- **? RANDOM** picks a rule (B/S, Generations or cyclic),
+  colours, a seed, a symmetry, a start shape, Perlin blobs and an animation (GIF: speed, length, edges,
   back-and-forth), leaving out automata that die, freeze or stay noise (each
   candidate is tried on a small grid first).
+- **Mutate** changes one digit of the current rule, keeping only lively
+  mutants: a way to explore the neighbours of a rule you like.
 - **Theme and language**: pickers at the top right. Theme `bonbon` (default)
   or `arcade`, language English (default) or French. Also in the URL:
   `?theme=arcade&lang=fr`.
@@ -145,6 +155,7 @@ GIFs of 80 million pixels (about 80 MB), masks of 10 MB, 2 renders at a time.
 | `-seed` | `1` | Random seed: same seed, same result |
 | `-symmetry` | `1` | Symmetric start: `1` (none), mirrors `2`, `4`, `8`, rotations `r2` (half turn), `r4` (quarter turns); `8` and `r4` need a square grid |
 | `-shape` | `all` | Start area, dead elsewhere: `all`, `disc`, `ring`, `cross`, `frame`, `stripes` |
+| `-noise` | `0` | Start in Perlin noise islands about this many cells wide, empty in between (`0`: plain random) |
 | `-density` | `0.3` | Initial share of live cells (unused in cyclic mode: states are uniform) |
 | `-wrap` | `true` | Wrapping (toroidal) edges; `-wrap=false` for dead edges |
 | `-palette` | `age` | Gradient (`-h` lists them all): `age`, `aurora`, `berry`, `bw`, `candy`, `cherry`, `cyber`, `dusk`, `fire`, `forest`, `gold`, `lagoon`, `lavender`, `lime`, `mint`, `mono`, `neon`, `ocean`, `peach`, `rainbow`, `sunset`, `toxic`, `viridis` |

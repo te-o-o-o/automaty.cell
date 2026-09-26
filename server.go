@@ -39,6 +39,7 @@ func serve(addr string) error {
 	mux.HandleFunc("GET /render", handleRender)
 	mux.HandleFunc("POST /render", handleRender) // with a mask image
 	mux.HandleFunc("GET /surprise", handleSurprise)
+	mux.HandleFunc("GET /mutate", handleMutate)
 
 	log.Printf("automaty.cell: listening on %s", addr)
 	srv := &http.Server{Addr: addr, Handler: mux, ReadHeaderTimeout: 10 * time.Second, WriteTimeout: time.Minute}
@@ -194,6 +195,7 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 		"symmetry":     s.symmetry,
 		"shape":        s.shape,
 		"pingpong":     strconv.FormatBool(s.pingpong),
+		"noise":        strconv.FormatFloat(s.noise, 'f', -1, 64),
 		"format":       "gif",
 		"gens":         strconv.Itoa(s.gens),
 		"delay":        strconv.Itoa(s.delay),
@@ -204,4 +206,29 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 		reply["colors"] = s.colors
 	}
 	json.NewEncoder(w).Encode(reply)
+}
+
+// handleMutate replies with a lively mutant of the page's B/S or Generations
+// rule (one neighbour count changed), as JSON {"rule": …}.
+func handleMutate(w http.ResponseWriter, r *http.Request) {
+	o, err := parseQuery(r)
+	if err == nil && o.cyclic {
+		err = errors.New("mutate works on B/S and Generations rules")
+	}
+	if err == nil {
+		_, err = ParseRule(resolvePreset(o.rule))
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	select {
+	case busy <- struct{}{}:
+		defer func() { <-busy }()
+	case <-r.Context().Done():
+		return
+	}
+	rule := mutateLively(rand.New(rand.NewSource(time.Now().UnixNano())), *o)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"rule": rule})
 }
