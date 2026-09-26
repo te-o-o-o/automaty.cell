@@ -38,7 +38,7 @@ type options struct {
 	mask                      string // CLI: image file whose light (or opaque) areas stay alive
 	maskData                  []byte // web: the same image, uploaded
 	out, serve                string
-	listRules                 bool
+	listRules, mcp            bool
 }
 
 func newFlagSet(o *options) *flag.FlagSet {
@@ -68,6 +68,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.StringVar(&o.palette, "palette", "age", "colour gradient: "+strings.Join(paletteNames(), ", "))
 	fs.StringVar(&o.colors, "colors", "", "custom gradient of 2 to 8 colours, RRGGBB,RRGGBB,… (replaces -palette)")
 	fs.StringVar(&o.serve, "serve", "", "serve the web page on this address (e.g. :8080) instead of writing a file")
+	fs.BoolVar(&o.mcp, "mcp", false, "serve the Model Context Protocol on stdin/stdout, for an agent to render with")
 	return fs
 }
 
@@ -85,6 +86,10 @@ func main() {
 		}
 	case o.serve != "":
 		fail(1, serve(o.serve))
+	case o.mcp:
+		if err := mcp(os.Stdin, os.Stdout); err != nil {
+			fail(1, err)
+		}
 	default:
 		o.gif = strings.EqualFold(filepath.Ext(o.out), ".gif")
 		o.zip = strings.EqualFold(filepath.Ext(o.out), ".zip")

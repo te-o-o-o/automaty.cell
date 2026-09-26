@@ -132,7 +132,7 @@ func parseQuery(r *http.Request) (*options, error) {
 	var args []string
 	for k, vs := range q {
 		// mask is a path: the server must never read its own files for a visitor.
-		if k == "o" || k == "serve" || k == "list-rules" || k == "mask" {
+		if k == "o" || k == "serve" || k == "list-rules" || k == "mcp" || k == "mask" {
 			return nil, fmt.Errorf("option %q is CLI only", k)
 		}
 		for _, v := range vs {

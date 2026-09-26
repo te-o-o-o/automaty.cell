@@ -1,14 +1,32 @@
-# automaty.cell
+<h1 align="center">automaty.cell</h1>
 
 <p align="center">
-  <img src="docs/blobs.gif" width="32%" alt="Mirrored blobs of a Larger than Life rule">
-  <img src="docs/swirls.gif" width="32%" alt="Colourful swirls of a cyclic automaton">
-  <img src="docs/melt.gif" width="32%" alt="Cyclic chaos melting into blobs, then rippling out again">
+  10<sup>38</sup> cellular automata → GIFs, PNGs and video-mapping sequences,<br>
+  from the command line, a web page or your AI agent (MCP)<br>
+  <sub>rules × seeds × symmetries × shapes × palettes, before density, grid size or your own colours</sub>
 </p>
 
+<p align="center"><sub>v0.1.0 · Go 1.22+ · zero dependencies · MIT</sub></p>
+
+<p align="center">
+  <a href="#the-three-above">Examples</a> ·
+  <a href="#what-it-does">Features</a> ·
+  <a href="#web-page">Web page</a> ·
+  <a href="#agents-mcp">Agents</a> ·
+  <a href="OPTIONS.md">Options</a>
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/blobs.gif" width="240" alt="Mirrored blobs of a Larger than Life rule"><br><sub>Globe, mirrored into four</sub></td>
+    <td align="center"><img src="docs/swirls.gif" width="240" alt="Colourful swirls of a cyclic automaton"><br><sub>Cyclic, custom colours</sub></td>
+    <td align="center"><img src="docs/melt.gif" width="240" alt="Cyclic chaos melting into blobs, then rippling out again"><br><sub>Cyclic → Majority → cyclic, with <code>-at</code></sub></td>
+  </tr>
+</table>
+
 Procedural images (PNG), animations (GIF) and image sequences (ZIP) from 2D
-cellular automata, as a command-line tool and a web page.
-Go 1.22+, standard library only.
+cellular automata, as a command-line tool, a web page and an MCP server for
+agents.
 
 ```
 go build -o automaty.cell .
@@ -53,6 +71,24 @@ command line below. **? RANDOM** picks lively settings, **Mutate** explores the
 neighbours of a rule you like, and the page's link holds its settings, to share
 a creation. Same engine as the CLI, with limits for online use (grids up to
 500×500, GIFs up to about 80 MB).
+
+## Agents (MCP)
+
+`-mcp` serves the [Model Context Protocol](https://modelcontextprotocol.io) on
+stdin/stdout: describe what you want to an agent and it renders it. Its one
+tool, `render`, takes the CLI options, writes the file, and shows the agent a
+contact sheet of 6 generations with a verdict (died out, frozen, fills the
+grid…) so it can adjust. Same limits as the web page.
+
+```
+claude mcp add automaty -- /path/to/automaty.cell -mcp
+```
+
+For Claude Desktop, in `claude_desktop_config.json`:
+
+```json
+{ "mcpServers": { "automaty": { "command": "/path/to/automaty.cell", "args": ["-mcp"] } } }
+```
 
 ## Tests
 

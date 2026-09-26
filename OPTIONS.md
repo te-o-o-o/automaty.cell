@@ -47,6 +47,7 @@ name; the command line below the image shows the ones you changed.
 ## The web page
 
 - `-serve` — serves the web page on an address such as `:8080` instead of writing a file.
+- `-mcp` — serves the Model Context Protocol on stdin/stdout, so an agent can render what you describe.
 - **? RANDOM** — picks random settings that give a lively, animated result.
 - **Mutate** — changes the rule a little (2 to 4 digits, or for Larger than Life its radius, ranges or middle cell), keeping only lively mutants that look different.
 - **Copy command** — copies the command line that makes the same image.
