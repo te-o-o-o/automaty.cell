@@ -80,8 +80,10 @@ func (g *Grid) Randomize(seed int64, density float64) {
 }
 
 // NoiseField returns fractal Perlin noise in [0, 1] for every cell, in blobs
-// about scale cells wide; the same seed gives the same field.
-// ponytail: not periodic, so wrapped edges show a seam; tile the lattice if it matters
+// about scale cells wide; the same seed gives the same field. It tiles: the
+// lattice fits a whole number of times in the grid and wraps around, so the
+// right edge continues the left one and the bottom the top, as wrapped
+// automata and seamless mosaics need.
 func NoiseField(seed int64, w, h int, scale float64) []float64 {
 	var perm [512]int
 	for i, v := range rand.New(rand.NewSource(seed)).Perm(256) {
@@ -100,22 +102,27 @@ func NoiseField(seed int64, w, h int, scale float64) []float64 {
 	}
 	fade := func(t float64) float64 { return t * t * t * (t*(t*6-15) + 10) }
 	lerp := func(t, a, b float64) float64 { return a + t*(b-a) }
-	noise := func(x, y float64) float64 { // about -1..1
-		xi, yi := int(math.Floor(x))&255, int(math.Floor(y))&255
+	mod := func(a, m int) int { return (a%m + m) % m }
+	// noise is Perlin noise (about -1..1) whose lattice repeats every px by py.
+	noise := func(x, y float64, px, py int) float64 {
+		xi, yi := int(math.Floor(x)), int(math.Floor(y))
 		x, y = x-math.Floor(x), y-math.Floor(y)
 		u, v := fade(x), fade(y)
-		a, b := perm[xi]+yi, perm[xi+1]+yi
+		hash := func(ix, iy int) int { return perm[perm[mod(ix, px)&255]+mod(iy, py)&255] }
 		return lerp(v,
-			lerp(u, grad(perm[a], x, y), grad(perm[b], x-1, y)),
-			lerp(u, grad(perm[a+1], x, y-1), grad(perm[b+1], x-1, y-1)))
+			lerp(u, grad(hash(xi, yi), x, y), grad(hash(xi+1, yi), x-1, y)),
+			lerp(u, grad(hash(xi, yi+1), x, y-1), grad(hash(xi+1, yi+1), x-1, y-1)))
 	}
+	// Lattice cells across the grid: about one per blob, but a whole number.
+	px, py := max(1, int(math.Round(float64(w)/scale))), max(1, int(math.Round(float64(h)/scale)))
 	field := make([]float64, w*h)
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			n, amp, freq := 0.0, 1.0, 1/scale
+			n, amp := 0.0, 1.0
 			for octave := 0; octave < 3; octave++ { // big blobs with finer detail
-				n += amp * noise(float64(x)*freq, float64(y)*freq)
-				amp, freq = amp/2, freq*2
+				ox, oy := px<<octave, py<<octave
+				n += amp * noise(float64(x*ox)/float64(w), float64(y*oy)/float64(h), ox, oy)
+				amp /= 2
 			}
 			field[y*w+x] = min(1, max(0, (n/1.75+1)/2))
 		}

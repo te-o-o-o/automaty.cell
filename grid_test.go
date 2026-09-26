@@ -399,6 +399,36 @@ func TestNoise(t *testing.T) {
 	}
 }
 
+// The noise tiles: across the right/left and bottom/top edges it changes no
+// more than between neighbours inside, so wrapped grids and mosaics show no
+// seam (before, the seam was many times the inner step).
+func TestNoiseTiles(t *testing.T) {
+	const w, h = 90, 60
+	for _, scale := range []float64{15, 40} {
+		f := NoiseField(7, w, h, scale)
+		stepX, stepY, seamX, seamY := 0.0, 0.0, 0.0, 0.0
+		for y := 0; y < h; y++ {
+			for x := 0; x < w; x++ {
+				if x < w-1 {
+					stepX += math.Abs(f[y*w+x+1] - f[y*w+x])
+				}
+				if y < h-1 {
+					stepY += math.Abs(f[(y+1)*w+x] - f[y*w+x])
+				}
+			}
+			seamX += math.Abs(f[y*w] - f[y*w+w-1])
+		}
+		for x := 0; x < w; x++ {
+			seamY += math.Abs(f[x] - f[(h-1)*w+x])
+		}
+		stepX, stepY = stepX/float64(h*(w-1)), stepY/float64(w*(h-1))
+		seamX, seamY = seamX/h, seamY/w
+		if seamX > 2*stepX || seamY > 2*stepY {
+			t.Errorf("scale %v: steps %.4f/%.4f, seams %.4f/%.4f", scale, stepX, stepY, seamX, seamY)
+		}
+	}
+}
+
 // Perlin starts are islands: no cell is born where the noise is low.
 func TestNoiseIslands(t *testing.T) {
 	const w, h = 60, 40

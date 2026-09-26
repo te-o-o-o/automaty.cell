@@ -80,7 +80,8 @@ least `-threshold` neighbours are already in state k+1:
 ```
 
 Perlin noise islands instead of a plain random start: cells are only born
-inside the blobs, which keeps clear continents:
+inside the blobs, which keeps clear continents. The noise tiles seamlessly,
+so with the default wrapping edges the images still make perfect mosaics:
 
 ```
 ./automaty.cell -rule daynight -density 0.5 -noise 40 -gens 150 -palette ocean -o continents.png
@@ -165,7 +166,7 @@ GIFs of 80 million pixels (about 80 MB), masks of 10 MB, 2 renders at a time.
 | `-seed` | `1` | Random seed: same seed, same result |
 | `-symmetry` | `1` | Symmetric start: `1` (none), mirrors `2`, `4`, `8`, rotations `r2` (half turn), `r4` (quarter turns); `8` and `r4` need a square grid |
 | `-shape` | `all` | Start area, dead elsewhere: `all`, `disc`, `ring`, `cross`, `frame`, `stripes` |
-| `-noise` | `0` | Start in Perlin noise islands about this many cells wide, empty in between (`0`: plain random) |
+| `-noise` | `0` | Start in Perlin noise islands about this many cells wide, empty in between (`0`: plain random); the noise tiles seamlessly, like wrapped grids |
 | `-density` | `0.3` | Initial share of live cells (unused in cyclic mode: states are uniform) |
 | `-wrap` | `true` | Wrapping (toroidal) edges; `-wrap=false` for dead edges |
 | `-palette` | `age` | Gradient (`-h` lists them all): `age`, `aurora`, `berry`, `bw`, `candy`, `cherry`, `cyber`, `dusk`, `fire`, `forest`, `gold`, `lagoon`, `lavender`, `lime`, `mint`, `mono`, `neon`, `ocean`, `peach`, `rainbow`, `sunset`, `toxic`, `viridis` |
