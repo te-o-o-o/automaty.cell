@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="#the-three-above">Examples</a> ·
+  <a href="#on-your-own-image">On an image</a> ·
   <a href="#what-it-does">Features</a> ·
   <a href="#web-page">Web page</a> ·
   <a href="#agents-mcp">Agents</a> ·
@@ -43,6 +44,22 @@ go build -o automaty.cell .
 
 # Changes during the run: cyclic chaos melts into Majority blobs, then ripples out again
 ./automaty.cell -cyclic -states 8 -threshold 2 -neighborhood moore -w 300 -h 300 -scale 1 -gens 150 -delay 6 -palette cyber -at '50:rule=majority 90:cyclic=true 90:threshold=3 90:states=5' -o melt.gif
+```
+
+## On your own image
+
+Any PNG or JPEG becomes a mask: the automaton only lives in its light areas (or
+its opaque ones, for a cut-out logo), ready to map onto a façade or a logo.
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/spaceship.png" width="240" alt="A pixel-art spaceship, pink on olive"><br><sub>The image</sub></td>
+    <td align="center"><img src="docs/spaceship.gif" width="240" alt="An automaton living only inside the spaceship"><br><sub>The automaton, kept inside it</sub></td>
+  </tr>
+</table>
+
+```
+./automaty.cell -rule=B368/S125 -seed=213602 -symmetry=8 -density=0.47 -gens=75 -delay=3 -w=280 -h=280 -colors='f3bfc4,e4d470,43cf27,18816c' -mask=spaceship.png -o spaceship.gif
 ```
 
 ## What it does

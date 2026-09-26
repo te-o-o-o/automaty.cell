@@ -3,3 +3,4 @@
 /automaty.cell
 *.zip
 !docs/*.gif
+!docs/*.png
