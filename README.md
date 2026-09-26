@@ -29,8 +29,13 @@ Procedural images (PNG), animations (GIF) and image sequences (ZIP) from 2D
 cellular automata, as a command-line tool, a web page and an MCP server for
 agents.
 
+Download a binary for macOS, Linux or Windows from the
+[latest release](https://github.com/te-o-o-o/automaty.cell/releases/latest)
+(on macOS, first `xattr -d com.apple.quarantine automaty.cell-*`, as it isn't
+signed), or with Go:
+
 ```
-go build -o automaty.cell .
+go install github.com/te-o-o-o/automaty.cell@latest
 ```
 
 ## The three above
