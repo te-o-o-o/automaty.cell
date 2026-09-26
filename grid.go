@@ -203,11 +203,32 @@ func (g *Grid) Symmetrize(mode string) {
 }
 
 // shapes are the -shape start areas: outside it, cells start dead (state 0).
-var shapes = []string{"all", "disc", "ring", "cross", "frame", "stripes"}
+// The last ones are patterns: a fixed methuselah in the centre, nothing else.
+var shapes = []string{"all", "dot", "disc", "ring", "cross", "frame", "stripes", "target", "checker", "spiral",
+	"rpentomino", "acorn", "diehard"}
+
+// patterns are the methuselahs of -shape: tiny starts that run long in Life.
+var patterns = map[string][]string{
+	"rpentomino": {".OO", "OO.", ".O."},
+	"acorn":      {".O.....", "...O...", "OO..OOO"},
+	"diehard":    {"......O.", "OO......", ".O...OOO"},
+}
 
 // KeepShape kills the cells outside shape, measured from the grid's centre
-// in units of half its smaller side.
+// in units of half its smaller side. A pattern replaces the whole start.
 func (g *Grid) KeepShape(shape string) {
+	if p, ok := patterns[shape]; ok {
+		clear(g.Cells)
+		x0, y0 := g.W/2-len(p[0])/2, g.H/2-len(p)/2
+		for y, row := range p {
+			for x, c := range row {
+				if c == 'O' && x0+x >= 0 && x0+x < g.W && y0+y >= 0 && y0+y < g.H {
+					g.Cells[(y0+y)*g.W+x0+x] = 1
+				}
+			}
+		}
+		return
+	}
 	r := float64(min(g.W, g.H)) / 2
 	cx, cy := float64(g.W-1)/2, float64(g.H-1)/2
 	border := max(1, min(g.W, g.H)/10)
@@ -217,6 +238,8 @@ func (g *Grid) KeepShape(shape string) {
 			d := math.Hypot(dx, dy)
 			var keep bool
 			switch shape {
+			case "dot":
+				keep = d <= 0.05
 			case "disc":
 				keep = d <= 0.4
 			case "ring":
@@ -227,6 +250,13 @@ func (g *Grid) KeepShape(shape string) {
 				keep = x < border || y < border || x >= g.W-border || y >= g.H-border
 			case "stripes":
 				keep = x*8/g.W%2 == 0
+			case "target":
+				keep = int(d*8)%2 == 0
+			case "checker":
+				keep = (x*8/g.W+y*8/g.H)%2 == 0
+			case "spiral": // two arms, winding outwards
+				a := math.Atan2(float64(y)-cy, float64(x)-cx) / math.Pi
+				keep = math.Mod(a+d*3+2, 1) < 0.5
 			default: // all
 				keep = true
 			}

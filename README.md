@@ -167,7 +167,7 @@ The same list in one sentence per option: [OPTIONS.md](OPTIONS.md).
 | `-gens` | `100` | Number of generations, the start included |
 | `-seed` | `1` | Random seed: same seed, same result |
 | `-symmetry` | `1` | Symmetric start: `1` (none), mirrors `2`, `4`, `8`, rotations `r2` (half turn), `r4` (quarter turns); `8` and `r4` need a square grid |
-| `-shape` | `all` | Start area, dead elsewhere: `all`, `disc`, `ring`, `cross`, `frame`, `stripes` |
+| `-shape` | `all` | Start area, dead elsewhere: `all`, `dot`, `disc`, `ring`, `cross`, `frame`, `stripes`, `target`, `checker`, `spiral`, or a methuselah: `rpentomino`, `acorn`, `diehard` |
 | `-noise` | `0` | Start in Perlin noise islands about this many cells wide, empty in between (`0`: plain random); the noise tiles seamlessly, like wrapped grids |
 | `-density` | `0.3` | Initial share of live cells (unused in cyclic mode: states are uniform) |
 | `-wrap` | `true` | Wrapping (toroidal) edges; `-wrap=false` for dead edges |

@@ -19,7 +19,7 @@ name; the command line below the image shows the ones you changed.
 - `-density` — the share of cells alive at the start (B/S, Generations and Larger than Life).
 - `-noise` — starts in Perlin noise islands about this many cells wide instead of plain random (`0` turns it off).
 - `-symmetry` — makes the start symmetric: mirrors `2`, `4`, `8` or rotations `r2`, `r4` (`8` and `r4` need a square grid).
-- `-shape` — keeps the start inside a shape (`disc`, `ring`, `cross`, `frame`, `stripes`), dead everywhere else.
+- `-shape` — keeps the start inside a shape (`dot`, `disc`, `ring`, `cross`, `frame`, `stripes`, `target`, `checker`, `spiral`), dead everywhere else, or starts from a single methuselah (`rpentomino`, `acorn`, `diehard`).
 - `-mask` — an image whose light (or opaque) areas are the only place cells may live, from start to end.
 
 ## The grid
