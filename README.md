@@ -59,12 +59,12 @@ its opaque ones, for a cut-out logo), ready to map onto a façade or a logo.
 <table align="center">
   <tr>
     <td align="center"><img src="docs/spaceship.png" width="240" alt="A pixel-art spaceship, pink on olive"><br><sub>The image</sub></td>
-    <td align="center"><img src="docs/spaceship.gif" width="240" alt="An automaton living only inside the spaceship"><br><sub>The automaton, kept inside it</sub></td>
+    <td align="center"><img src="docs/spaceship.gif" width="240" alt="A candy-coloured automaton living only inside the spaceship"><br><sub>The automaton, kept inside it</sub></td>
   </tr>
 </table>
 
 ```
-./automaty.cell -rule=B368/S125 -seed=213602 -symmetry=8 -density=0.47 -gens=75 -delay=3 -w=280 -h=280 -colors='f3bfc4,e4d470,43cf27,18816c' -mask=spaceship.png -o spaceship.gif
+./automaty.cell -rule=03468/23/6 -palette=candy -seed=477752 -symmetry=2 -density=0.57 -delay=6 -pingpong=true -w=280 -h=280 -mask=spaceship.png -o spaceship.gif
 ```
 
 ## What it does
