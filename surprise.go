@@ -115,7 +115,7 @@ func surprise(rng *rand.Rand, base options) options {
 		case family < 0.45:
 			o.rule = Presets[rng.Intn(len(Presets))].Rule
 		case family < 0.65:
-			o.rule = mutate(rng, Presets[rng.Intn(len(Presets))].Rule)
+			o.rule = mutate(rng, lifeLikePresets[rng.Intn(len(lifeLikePresets))])
 		default:
 			o.rule = randomRule(rng)
 		}
@@ -128,6 +128,17 @@ func surprise(rng *rand.Rand, base options) options {
 	}
 	return base // ponytail: 300 duds in a row never happened in tests; add a better fallback if it does
 }
+
+// lifeLikePresets are the preset rules mutate can handle: B/S and
+// Generations, not Larger than Life.
+var lifeLikePresets = func() (rules []string) {
+	for _, p := range Presets {
+		if !IsLtL(p.Rule) {
+			rules = append(rules, p.Rule)
+		}
+	}
+	return rules
+}()
 
 // mutateLively returns a mutant of o's rule (see mutate) that looks
 // interesting with o's other settings, or the last mutant tried.
@@ -170,6 +181,9 @@ func mutate(rng *rand.Rand, rule string) string {
 			parts[2] = strconv.Itoa(max(3, c+[]int{-2, -1, 1, 2}[rng.Intn(4)]))
 		}
 		return strings.Join(parts, "/")
+	}
+	if len(parts) != 2 { // not B/S notation (Larger than Life…): leave it
+		return rule
 	}
 	i, from := rng.Intn(2), 0 // B…/S…
 	if parts[i][0] == 'B' {

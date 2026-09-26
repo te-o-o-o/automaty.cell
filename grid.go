@@ -38,6 +38,12 @@ var Presets = []struct{ Name, Rule string }{
 	{"brian", "/2/3"},
 	{"frogs", "345/2/6"},
 	{"belzhab", "2/23/8"},
+	// Larger than Life: big neighbourhoods, soft organic shapes.
+	{"bosco", "R5,C0,M1,S34..58,B34..45,NM"},
+	{"majority", "R4,C0,M1,S41..81,B41..81,NM"},
+	{"majorly", "R7,C0,M1,S113..225,B113..225,NM"},
+	{"waffle", "R7,C0,M1,S100..200,B75..170,NM"},
+	{"globe", "R8,C0,M0,S163..223,B74..252,NM"},
 }
 
 // Cyclic is a cyclic cellular automaton: a cell in state k moves to state
@@ -342,6 +348,136 @@ func (g *Grid) StepCyclicInto(next *Grid, c Cyclic) {
 			next.Cells[i] = k
 			if n >= c.Threshold {
 				next.Cells[i] = succ
+			}
+		}
+	}
+}
+
+// LtL is a Larger than Life rule: B/S over a big square neighbourhood, with
+// ranges of neighbour counts. Written as in Golly: R5,C0,M1,S34..58,B34..45,NM
+// (radius, states, middle cell counted or not, survival and birth ranges,
+// Moore neighbourhood). With States 0 or 2 it is two-state, and live cells
+// age like B/S rules; with more, they die one state at a time like Generations.
+type LtL struct {
+	Radius, States         int
+	Middle                 bool
+	SMin, SMax, BMin, BMax int
+}
+
+// IsLtL reports whether a rule is written in Larger than Life notation.
+func IsLtL(rule string) bool { return strings.HasPrefix(strings.ToUpper(rule), "R") }
+
+// ParseLtL reads Larger than Life notation, e.g. R5,C0,M1,S34..58,B34..45,NM.
+func ParseLtL(s string) (LtL, error) {
+	var r LtL
+	var seen string
+	bad := func(why string) (LtL, error) { return LtL{}, fmt.Errorf("rule %q: %s", s, why) }
+	for _, part := range strings.Split(strings.ToUpper(s), ",") {
+		if part == "" {
+			return bad("empty part")
+		}
+		key, val := part[0], part[1:]
+		seen += string(key)
+		var err error
+		switch key {
+		case 'R':
+			r.Radius, err = strconv.Atoi(val)
+		case 'C':
+			r.States, err = strconv.Atoi(val)
+		case 'M':
+			r.Middle = val == "1"
+			if val != "0" && val != "1" {
+				return bad("M must be 0 or 1")
+			}
+		case 'S', 'B':
+			lo, hi, ok := strings.Cut(val, "..")
+			if !ok {
+				return bad("want S<min>..<max> and B<min>..<max>")
+			}
+			var a, b int
+			if a, err = strconv.Atoi(lo); err == nil {
+				b, err = strconv.Atoi(hi)
+			}
+			if key == 'S' {
+				r.SMin, r.SMax = a, b
+			} else {
+				r.BMin, r.BMax = a, b
+			}
+		case 'N':
+			if val != "M" {
+				return bad("only the Moore neighbourhood (NM) is supported")
+			}
+		default:
+			return bad(fmt.Sprintf("unknown part %q", part))
+		}
+		if err != nil {
+			return bad(fmt.Sprintf("part %q: %v", part, err))
+		}
+	}
+	switch {
+	case !strings.Contains(seen, "R") || !strings.Contains(seen, "S") || !strings.Contains(seen, "B"):
+		return bad("want at least R, S and B")
+	case r.Radius < 1 || r.Radius > 20:
+		return bad("radius must be 1 to 20")
+	case r.States == 1 || r.States < 0 || r.States > 256:
+		return bad("C must be 0, or 2 to 256")
+	case r.BMin < 1: // birth on 0 neighbours would flash the whole empty grid
+		return bad("birth must need at least 1 neighbour")
+	}
+	return r, nil
+}
+
+// StepLtLInto writes the next generation under Larger than Life rule r into
+// next. Neighbour counts come from a summed-area table of the live cells over
+// the grid padded by the radius (wrapped, or dead beyond the edges), so every
+// count costs the same whatever the radius.
+// ponytail: the table is allocated every generation; keep one if GC shows up
+func (g *Grid) StepLtLInto(next *Grid, r LtL) {
+	W, H, R := g.W, g.H, r.Radius
+	generations := r.States > 2
+	PW, PH := W+2*R, H+2*R
+	sum := make([]int32, (PW+1)*(PH+1)) // sum[(y)*(PW+1)+x]: live cells above and left of (x, y)
+	for py := 0; py < PH; py++ {
+		y := py - R
+		for px := 0; px < PW; px++ {
+			x := px - R
+			var v int32
+			if g.Wrap {
+				x, y := (x%W+W)%W, (y%H+H)%H
+				if alive(g.Cells[y*W+x], generations) {
+					v = 1
+				}
+			} else if x >= 0 && y >= 0 && x < W && y < H && alive(g.Cells[y*W+x], generations) {
+				v = 1
+			}
+			i := (py+1)*(PW+1) + px + 1
+			sum[i] = v + sum[i-1] + sum[i-PW-1] - sum[i-PW-2]
+		}
+	}
+	side := 2*R + 1
+	for y := 0; y < H; y++ {
+		for x := 0; x < W; x++ {
+			// the window is padded (x..x+2R, y..y+2R), centred on the cell
+			n := int(sum[(y+side)*(PW+1)+x+side] - sum[y*(PW+1)+x+side] - sum[(y+side)*(PW+1)+x] + sum[y*(PW+1)+x])
+			i := y*W + x
+			v := g.Cells[i]
+			if !r.Middle && alive(v, generations) {
+				n--
+			}
+			next.Cells[i] = 0
+			switch {
+			case v == 0:
+				if n >= r.BMin && n <= r.BMax {
+					next.Cells[i] = 1
+				}
+			case !generations: // two states: survivors age
+				if n >= r.SMin && n <= r.SMax {
+					next.Cells[i] = max(v, v+1)
+				}
+			case v == 1 && n >= r.SMin && n <= r.SMax:
+				next.Cells[i] = 1
+			default: // dying one state at a time
+				next.Cells[i] = uint8((int(v) + 1) % r.States)
 			}
 		}
 	}

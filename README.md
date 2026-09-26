@@ -59,6 +59,16 @@ Generations rules (`S/B/C` notation: survival / birth / number of states):
 ./automaty.cell -rule brian -gens 150 -o brian.png
 ```
 
+Larger than Life: B/S over big neighbourhoods (radius up to 20), with ranges
+of neighbour counts, in Golly's notation. Soft, organic shapes: Bosco's rule
+grows swimming "bugs", Majority melts into smooth continents:
+
+```
+./automaty.cell -rule bosco -density 0.5 -gens 150 -palette candy -o bugs.png
+./automaty.cell -rule R4,C0,M1,S41..81,B41..81,NM -density 0.5 -gens 150 -o majority.png
+./automaty.cell -rule waffle -density 0.5 -gens 150 -o waffle.gif
+```
+
 Cyclic automata: a cell in state k moves to k+1 (modulo `-states`) when at
 least `-threshold` neighbours are already in state k+1:
 
@@ -127,7 +137,7 @@ re-renders on every change, and the equivalent command line shows below it.
   colours, a seed, a symmetry, a start shape, Perlin blobs and an animation (GIF: speed, length, edges,
   back-and-forth), leaving out automata that die, freeze or stay noise (each
   candidate is tried on a small grid first).
-- **Mutate** changes one digit of the current rule, keeping only lively
+- **Mutate** (B/S and Generations rules) changes one digit of the current rule, keeping only lively
   mutants: a way to explore the neighbours of a rule you like.
 - **Theme and language**: pickers at the top right. Theme `bonbon` (default)
   or `arcade`, language English (default) or French. Also in the URL:
@@ -147,7 +157,7 @@ GIFs of 80 million pixels (about 80 MB), masks of 10 MB, 2 renders at a time.
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `-rule` | `B3/S23` | B/S rule (`B36/S23`, `b2/s`…), Generations S/B/C rule (`345/2/4`, `/2/3`…) or preset name |
+| `-rule` | `B3/S23` | B/S rule (`B36/S23`, `b2/s`…), Generations S/B/C rule (`345/2/4`, `/2/3`…), Larger than Life rule (`R5,C0,M1,S34..58,B34..45,NM`: radius, states, middle counted, survival and birth ranges, Moore neighbourhood) or preset name |
 | `-list-rules` | | Print the presets and exit |
 | `-w`, `-h` | `380` | Grid size in cells |
 | `-scale` | `2` | Pixels per cell |

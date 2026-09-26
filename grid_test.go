@@ -429,3 +429,42 @@ func TestCyclicBW(t *testing.T) {
 		t.Fatalf("palette %v, %v", pal, err)
 	}
 }
+
+// Larger than Life at radius 1 must be exactly Life, whether the middle cell
+// is counted (then survival is 3-4) or not (2-3), with or without wrapped
+// edges: this checks the summed-area table, padding included.
+func TestLtLIsLifeAtRadius1(t *testing.T) {
+	for _, rule := range []string{"R1,C0,M0,S2..3,B3..3,NM", "r1,c2,m1,s3..4,b3..3,nm"} {
+		r, err := ParseLtL(rule)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, wrap := range []bool{true, false} {
+			life, ltl := NewGrid(37, 23, wrap), NewGrid(37, 23, wrap)
+			life.Randomize(4, 0.35)
+			copy(ltl.Cells, life.Cells)
+			for i := 0; i < 40; i++ {
+				life = life.Step(Life)
+				next := NewGrid(37, 23, wrap)
+				ltl.StepLtLInto(next, r)
+				ltl = next
+				if !slices.Equal(life.Cells, ltl.Cells) {
+					t.Fatalf("%s wrap=%v: generation %d differs from Life", rule, wrap, i+1)
+				}
+			}
+		}
+	}
+}
+
+func TestParseLtL(t *testing.T) {
+	r, err := ParseLtL("R5,C0,M1,S34..58,B34..45,NM")
+	if err != nil || r != (LtL{Radius: 5, Middle: true, SMin: 34, SMax: 58, BMin: 34, BMax: 45}) {
+		t.Fatalf("got %+v, %v", r, err)
+	}
+	for _, bad := range []string{"R5", "R0,S1..2,B1..2", "R5,S3,B1..2", "R5,S1..2,B0..2", "R5,C1,S1..2,B1..2",
+		"R5,S1..2,B1..2,NN", "R5,S1..2,B1..2,X3", "R5,,S1..2,B1..2", "R5,M2,S1..2,B1..2"} {
+		if _, err := ParseLtL(bad); err == nil {
+			t.Errorf("ParseLtL(%q): want an error", bad)
+		}
+	}
+}

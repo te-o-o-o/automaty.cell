@@ -157,9 +157,11 @@ func TestSurpriseHelpers(t *testing.T) {
 	}
 	rng := rand.New(rand.NewSource(1))
 	for i := 0; i < 200; i++ {
-		rule := mutate(rng, Presets[i%len(Presets)].Rule)
-		if _, err := ParseRule(rule); err != nil {
-			t.Errorf("mutate(%s) = %s: %v", Presets[i%len(Presets)].Rule, rule, err)
+		preset := lifeLikePresets[i%len(lifeLikePresets)]
+		if rule := mutate(rng, preset); rule != preset {
+			if _, err := ParseRule(rule); err != nil {
+				t.Errorf("mutate(%s) = %s: %v", preset, rule, err)
+			}
 		}
 		colors := strings.Split(randomColors(rng), ",")
 		for _, c := range colors {

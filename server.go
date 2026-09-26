@@ -212,7 +212,7 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 // rule (one neighbour count changed), as JSON {"rule": …}.
 func handleMutate(w http.ResponseWriter, r *http.Request) {
 	o, err := parseQuery(r)
-	if err == nil && o.cyclic {
+	if err == nil && (o.cyclic || IsLtL(resolvePreset(o.rule))) {
 		err = errors.New("mutate works on B/S and Generations rules")
 	}
 	if err == nil {

@@ -237,21 +237,37 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 			gr.stops = []color.RGBA{gr.bg, gr.stops[0]}
 		}
 		pal = gr.palette(c.States, false, func(s int) float64 { return float64(s) / float64(c.States-1) })
-	default:
-		r, err := ParseRule(resolvePreset(o.rule))
-		if err != nil {
-			return nil, nil, nil, err
+	default: // B/S, Generations or Larger than Life
+		rule, states := resolvePreset(o.rule), 0 // states: 0 when cells age (two-state rules)
+		if IsLtL(rule) {
+			r, err := ParseLtL(rule)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			if r.Radius >= min(o.w, o.h) {
+				return nil, nil, nil, errors.New("Larger than Life: radius must be smaller than the grid")
+			}
+			step = swapping(func(g, next *Grid) { g.StepLtLInto(next, r) })
+			if r.States > 2 {
+				states = r.States
+			}
+		} else {
+			r, err := ParseRule(rule)
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			step = swapping(func(g, next *Grid) { g.StepInto(next, r) })
+			states = r.States
 		}
 		if o.noise > 0 {
 			g.RandomizeNoise(o.seed, o.density, o.noise)
 		} else {
 			g.Randomize(o.seed, o.density)
 		}
-		step = swapping(func(g, next *Grid) { g.StepInto(next, r) })
-		if r.States > 0 {
+		if states > 0 {
 			// Generations: alive first, then dying states evenly.
-			pal = gr.palette(r.States, true, func(s int) float64 {
-				return float64(s-1) / float64(max(r.States-2, 1))
+			pal = gr.palette(states, true, func(s int) float64 {
+				return float64(s-1) / float64(max(states-2, 1))
 			})
 		} else {
 			// B/S ages 1-255, log scale: the first few generations matter most.
