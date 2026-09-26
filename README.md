@@ -156,6 +156,8 @@ GIFs of 80 million pixels (about 80 MB), masks of 10 MB, 2 renders at a time.
 
 ## Options
 
+The same list in one sentence per option: [OPTIONS.md](OPTIONS.md).
+
 | Flag | Default | Meaning |
 |---|---|---|
 | `-rule` | `B3/S23` | B/S rule (`B36/S23`, `b2/s`…), Generations S/B/C rule (`345/2/4`, `/2/3`…), Larger than Life rule (`R5,C0,M1,S34..58,B34..45,NM`: radius, states, middle counted, survival and birth ranges, Moore neighbourhood) or preset name |
