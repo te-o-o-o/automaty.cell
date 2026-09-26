@@ -6,7 +6,7 @@
   <sub>rules × seeds × symmetries × shapes × palettes, before density, grid size or your own colours</sub>
 </p>
 
-<p align="center"><sub>v0.1.0 · Go 1.22+ · zero dependencies · MIT</sub></p>
+<p align="center"><sub>v0.2.0 · Go 1.22+ · zero dependencies · MIT</sub></p>
 
 <p align="center">
   <a href="#the-three-above">Examples</a> ·
