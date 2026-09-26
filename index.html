@@ -152,6 +152,10 @@
   #warning p { margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #warning strong { margin-right: 8px; color: var(--highlight); }
   #warning button { flex-shrink: 0; background: var(--highlight); color: var(--primary-text); border: 0; padding: 4px 8px; }
+  /* Collapsed: just the title and "Open", centred in the header. */
+  #warning.collapsed { flex: 0 0 auto; margin: 0 auto; }
+  #warning.collapsed .warning-text { display: none; }
+  #warning.collapsed strong { margin-right: 0; }
   @media (max-width: 800px) {
     header { flex-wrap: wrap; }
     #warning { order: 1; flex-basis: 100%; min-height: 36px; }
@@ -214,8 +218,8 @@
 <header>
   <h1>automaty.cell</h1>
   <section id="warning" aria-label="{{.T.warningLabel}}" title="{{.T.warningText}}">
-    <p><strong>{{.T.warningLabel}}</strong>{{.T.warningShort}}</p>
-    <button type="button" id="warning-ok">{{.T.close}}</button>
+    <p><strong>{{.T.warningLabel}}</strong><span class="warning-text">{{.T.warningShort}}</span></p>
+    <button type="button" id="warning-ok" aria-expanded="true" data-open="{{.T.open}}" data-close="{{.T.close}}">{{.T.close}}</button>
   </section>
   <div class="pickers">
     <label>{{.T.theme}}
@@ -611,11 +615,22 @@ for (const [id, def] of [['theme', 'bonbon'], ['lang', 'en']]) {
   });
 }
 
-// The warning stays dismissed on later visits (when storage is available).
-try { if (localStorage.getItem('automaty.cell-warning-closed')) $('warning').hidden = true; } catch {}
+// Close folds the warning down to its title and an Open button; the choice
+// is kept for later visits (when storage is available).
+function foldWarning(folded) {
+  const button = $('warning-ok');
+  $('warning').classList.toggle('collapsed', folded);
+  button.textContent = folded ? button.dataset.open : button.dataset.close;
+  button.setAttribute('aria-expanded', String(!folded));
+}
+try { foldWarning(!!localStorage.getItem('automaty.cell-warning-closed')); } catch {}
 $('warning-ok').addEventListener('click', () => {
-  $('warning').hidden = true;
-  try { localStorage.setItem('automaty.cell-warning-closed', '1'); } catch {}
+  const folded = !$('warning').classList.contains('collapsed');
+  foldWarning(folded);
+  try {
+    if (folded) localStorage.setItem('automaty.cell-warning-closed', '1');
+    else localStorage.removeItem('automaty.cell-warning-closed');
+  } catch {}
 });
 
 setColors(['#1a0033', '#ff3ea5', '#ffcc00']);
