@@ -455,12 +455,62 @@ func TestNoiseIslands(t *testing.T) {
 	}
 }
 
+// -at switches the rule at its generation, keeps the cells across families,
+// and rejects options that can't change during a run.
+func TestKeyframes(t *testing.T) {
+	var o options
+	newFlagSet(&o).Parse([]string{"-w=20", "-h=20", "-density=0.5", "-at=3:rule=B/S 5:cyclic=true 5:states=4"})
+	g, step, pal, err := o.setup()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for gen := 1; gen <= 4; gen++ {
+		g = step(g)
+		if live := slices.ContainsFunc(g.Cells, func(v uint8) bool { return v != 0 }); live != (gen < 3) {
+			t.Errorf("gen %d: live cells %v, want %v (B/S kills all from gen 3)", gen, live, gen < 3)
+		}
+	}
+	g = step(g) // gen 5: cyclic, 4 states, from an empty grid
+	if len(pal()) != 4 || slices.ContainsFunc(g.Cells, func(v uint8) bool { return v != 0 }) {
+		t.Errorf("gen 5: palette of %d, cells %v", len(pal()), g.Cells)
+	}
+
+	o.at = "3:density=0.1"
+	if _, _, _, err := o.setup(); err == nil {
+		t.Error("-at density: want an error")
+	}
+}
+
+// Cells keep their meaning when the family changes.
+func TestConvert(t *testing.T) {
+	bs, gen4, gen3, cyc3 := automaton{}, automaton{states: 4}, automaton{states: 3}, automaton{cyclic: true, states: 3}
+	for _, tc := range []struct {
+		from, to automaton
+		in, want []uint8
+	}{
+		{bs, gen4, []uint8{0, 1, 7}, []uint8{0, 1, 1}},
+		{gen4, gen3, []uint8{0, 1, 2, 3}, []uint8{0, 1, 2, 0}},
+		{gen4, bs, []uint8{0, 1, 2}, []uint8{0, 1, 0}},
+		{cyc3, bs, []uint8{0, 1, 2}, []uint8{0, 1, 0}},
+		{bs, cyc3, []uint8{0, 1, 5}, []uint8{0, 1, 2}},
+	} {
+		cells := slices.Clone(tc.in)
+		convert(cells, tc.from, tc.to)
+		if !slices.Equal(cells, tc.want) {
+			t.Errorf("%+v → %+v: %v gives %v, want %v", tc.from, tc.to, tc.in, cells, tc.want)
+		}
+	}
+}
+
 // A one-colour gradient (bw) still gives cyclic states different shades.
 func TestCyclicBW(t *testing.T) {
 	var o options
 	newFlagSet(&o).Parse([]string{"-cyclic", "-palette=bw", "-w=20", "-h=20"})
-	_, _, pal, err := o.setup()
-	if err != nil || len(pal) < 3 || pal[1] == pal[len(pal)-1] {
+	_, _, palette, err := o.setup()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pal := palette(); len(pal) < 3 || pal[1] == pal[len(pal)-1] {
 		t.Fatalf("palette %v, %v", pal, err)
 	}
 }

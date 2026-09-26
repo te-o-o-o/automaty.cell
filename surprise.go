@@ -92,6 +92,7 @@ func surprise(rng *rand.Rand, base options) options {
 			o.symmetry = "r2"
 		}
 		o.shape = "all"
+		o.at = "" // changes made for the old settings would not fit the new ones
 		if rng.Intn(3) == 0 {
 			o.shape = shapes[1+rng.Intn(len(shapes)-1)]
 		}

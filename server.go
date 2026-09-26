@@ -194,6 +194,7 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 		"seed":         strconv.FormatInt(s.seed, 10),
 		"symmetry":     s.symmetry,
 		"shape":        s.shape,
+		"at":           "",
 		"pingpong":     strconv.FormatBool(s.pingpong),
 		"noise":        strconv.FormatFloat(s.noise, 'f', -1, 64),
 		"format":       "gif",

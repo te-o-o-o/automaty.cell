@@ -105,6 +105,14 @@ mapping (with the default wrapping edges, images also tile seamlessly):
 ./automaty.cell -cyclic -shape disc -gens 120 -pingpong -o loop.gif
 ```
 
+Changes during the run: from a generation on, `-at` switches the rule, the
+palette or the edges while the cells carry on. Here cyclic chaos melts into
+Majority blobs halfway:
+
+```
+./automaty.cell -cyclic -states 8 -threshold 2 -neighborhood moore -gens 200 -palette cyber -at '100:rule=majority' -o melt.gif
+```
+
 Mapping onto a real shape: a mask (a white silhouette on black, or a cut-out
 logo) confines the automaton, and a ZIP of PNGs loads in video mapping tools:
 
@@ -168,6 +176,7 @@ The same list in one sentence per option: [OPTIONS.md](OPTIONS.md).
 | `-seed` | `1` | Random seed: same seed, same result |
 | `-symmetry` | `1` | Symmetric start: `1` (none), mirrors `2`, `4`, `8`, rotations `r2` (half turn), `r4` (quarter turns); `8` and `r4` need a square grid |
 | `-shape` | `all` | Start area, dead elsewhere: `all`, `dot`, `disc`, `ring`, `cross`, `frame`, `stripes`, `target`, `checker`, `spiral`, or a methuselah: `rpentomino`, `acorn`, `diehard` |
+| `-at` | | Changes during the run, `GEN:FLAG=VALUE` separated by spaces: `rule`, `cyclic`, `states`, `threshold`, `radius`, `neighborhood`, `palette`, `colors`, `wrap` |
 | `-noise` | `0` | Start in Perlin noise islands about this many cells wide, empty in between (`0`: plain random); the noise tiles seamlessly, like wrapped grids |
 | `-density` | `0.3` | Initial share of live cells (unused in cyclic mode: states are uniform) |
 | `-wrap` | `true` | Wrapping (toroidal) edges; `-wrap=false` for dead edges |

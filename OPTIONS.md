@@ -22,6 +22,10 @@ name; the command line below the image shows the ones you changed.
 - `-shape` — keeps the start inside a shape (`dot`, `disc`, `ring`, `cross`, `frame`, `stripes`, `target`, `checker`, `spiral`), dead everywhere else, or starts from a single methuselah (`rpentomino`, `acorn`, `diehard`).
 - `-mask` — an image whose light (or opaque) areas are the only place cells may live, from start to end.
 
+## Changes during the run
+
+- `-at` — changes options from a generation on while the cells carry on, like `'80:rule=bosco 150:palette=candy'`: `rule`, `cyclic`, `states`, `threshold`, `radius`, `neighborhood`, `palette`, `colors` and `wrap`.
+
 ## The grid
 
 - `-w`, `-h` — the grid's width and height, in cells.

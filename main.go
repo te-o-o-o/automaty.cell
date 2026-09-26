@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -23,7 +24,7 @@ import (
 type options struct {
 	w, h, scale, gens         int
 	seed                      int64
-	symmetry, shape           string
+	symmetry, shape, at       string
 	pingpong                  bool
 	density, noise            float64
 	rule                      string
@@ -51,6 +52,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.Float64Var(&o.noise, "noise", 0, "start in Perlin noise blobs about this many cells wide (0: plain random)")
 	fs.StringVar(&o.symmetry, "symmetry", "1", "symmetric start: 1 (none), mirrors 2, 4 or 8, rotations r2 or r4 (8 and r4 need a square grid)")
 	fs.StringVar(&o.shape, "shape", "all", "start area, dead outside: "+strings.Join(shapes, ", "))
+	fs.StringVar(&o.at, "at", "", "changes during the run, space-separated GEN:FLAG=VALUE (e.g. '80:rule=bosco 150:palette=candy'), FLAG one of "+strings.Join(liveFlags, ", "))
 	fs.StringVar(&o.out, "o", "out.png", "output file: .png (last generation), .gif (animation) or .zip (one PNG per generation)")
 	fs.StringVar(&o.rule, "rule", "B3/S23", "rule in B/S (B3/S23) or Generations S/B/C (345/2/4) notation, or a preset name (see -list-rules)")
 	fs.BoolVar(&o.listRules, "list-rules", false, "list preset rules and exit")
@@ -105,10 +107,10 @@ func (o *options) generate(w io.Writer) error {
 	}
 	if o.gif {
 		// ponytail: all frames held in memory (W*H*scale² bytes each), stream if it gets too big
-		frames := []*image.Paletted{Render(g, o.scale, pal)}
+		frames := []*image.Paletted{Render(g, o.scale, pal())}
 		for i := 1; i < o.gens; i++ {
 			g = step(g)
-			frames = append(frames, Render(g, o.scale, pal))
+			frames = append(frames, Render(g, o.scale, pal()))
 		}
 		if o.pingpong {
 			frames = pingpong(frames)
@@ -128,7 +130,7 @@ func (o *options) generate(w io.Writer) error {
 				g = step(g)
 			}
 			var buf bytes.Buffer
-			if err := png.Encode(&buf, Render(g, o.scale, pal)); err != nil {
+			if err := png.Encode(&buf, Render(g, o.scale, pal())); err != nil {
 				return err
 			}
 			frames = append(frames, buf.Bytes())
@@ -152,7 +154,7 @@ func (o *options) generate(w io.Writer) error {
 	for i := 1; i < o.gens; i++ {
 		g = step(g)
 	}
-	return png.Encode(w, Render(g, o.scale, pal))
+	return png.Encode(w, Render(g, o.scale, pal()))
 }
 
 // resolvePreset returns the rule a preset name stands for, or rule itself.
@@ -175,8 +177,9 @@ func pingpong[T any](frames []T) []T {
 }
 
 // setup checks the options and returns the starting grid, the function that
-// computes the next generation, and the palette.
-func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, err error) {
+// computes the next generation, and the palette of the last generation
+// computed (-at may change it on the way).
+func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal func() color.Palette, err error) {
 	if o.w < 1 || o.h < 1 || o.scale < 1 || o.gens < 1 {
 		return nil, nil, nil, errors.New("want w, h, scale and gens >= 1")
 	}
@@ -191,92 +194,43 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 	if o.noise < 0 {
 		return nil, nil, nil, errors.New("want noise >= 0")
 	}
-
-	gr, ok := gradients[o.palette]
-	if !ok {
-		return nil, nil, nil, fmt.Errorf("unknown palette %q (want one of %s)", o.palette, strings.Join(paletteNames(), ", "))
+	cur, err := o.automaton()
+	if err != nil {
+		return nil, nil, nil, err
 	}
-	if o.colors != "" {
-		var stops []color.RGBA
-		for _, hex := range strings.Split(o.colors, ",") {
-			c, err := parseHex(hex)
-			if err != nil {
-				return nil, nil, nil, fmt.Errorf("-colors: %w", err)
-			}
-			stops = append(stops, c)
-		}
-		if len(stops) < 2 || len(stops) > 8 {
-			return nil, nil, nil, fmt.Errorf("-colors: want 2 to 8 colours, got %d", len(stops))
-		}
-		gr = gradient{black, stops}
+	keys, err := o.keyframes()
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	g = NewGrid(o.w, o.h, o.wrap)
 	switch {
+	case o.cyclic && o.noise > 0:
+		g.RandomizeStatesNoise(o.seed, o.states, o.noise)
 	case o.cyclic:
-		c := Cyclic{States: o.states, Threshold: o.threshold, Radius: o.radius}
-		switch o.neighborhood {
-		case "moore":
-		case "vonneumann":
-			c.VonNeumann = true
-		default:
-			return nil, nil, nil, fmt.Errorf("unknown neighborhood %q (want moore or vonneumann)", o.neighborhood)
-		}
-		if c.States < 2 || c.States > 256 || c.Threshold < 1 || c.Radius < 1 || c.Radius >= min(o.w, o.h) {
-			return nil, nil, nil, errors.New("cyclic: want 2 <= states <= 256, threshold >= 1, 1 <= radius < grid size")
-		}
-		if o.noise > 0 {
-			g.RandomizeStatesNoise(o.seed, c.States, o.noise)
-		} else {
-			g.RandomizeStates(o.seed, c.States)
-		}
-		step = swapping(func(g, next *Grid) { g.StepCyclicInto(next, c) })
-		// Every state is a live colour, spread evenly; a one-colour gradient
-		// (bw) fades from its background, or every state would look the same.
-		if len(gr.stops) == 1 {
-			gr.stops = []color.RGBA{gr.bg, gr.stops[0]}
-		}
-		pal = gr.palette(c.States, false, func(s int) float64 { return float64(s) / float64(c.States-1) })
-	default: // B/S, Generations or Larger than Life
-		rule, states := resolvePreset(o.rule), 0 // states: 0 when cells age (two-state rules)
-		if IsLtL(rule) {
-			r, err := ParseLtL(rule)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			if r.Radius >= min(o.w, o.h) {
-				return nil, nil, nil, errors.New("Larger than Life: radius must be smaller than the grid")
-			}
-			step = swapping(func(g, next *Grid) { g.StepLtLInto(next, r) })
-			if r.States > 2 {
-				states = r.States
-			}
-		} else {
-			r, err := ParseRule(rule)
-			if err != nil {
-				return nil, nil, nil, err
-			}
-			step = swapping(func(g, next *Grid) { g.StepInto(next, r) })
-			states = r.States
-		}
-		if o.noise > 0 {
-			g.RandomizeNoise(o.seed, o.density, o.noise)
-		} else {
-			g.Randomize(o.seed, o.density)
-		}
-		if states > 0 {
-			// Generations: alive first, then dying states evenly.
-			pal = gr.palette(states, true, func(s int) float64 {
-				return float64(s-1) / float64(max(states-2, 1))
-			})
-		} else {
-			// B/S ages 1-255, log scale: the first few generations matter most.
-			pal = gr.palette(256, true, func(s int) float64 { return math.Log(float64(s)) / math.Log(255) })
-		}
+		g.RandomizeStates(o.seed, o.states)
+	case o.noise > 0:
+		g.RandomizeNoise(o.seed, o.density, o.noise)
+	default:
+		g.Randomize(o.seed, o.density)
 	}
-
 	g.KeepShape(o.shape)
 	g.Symmetrize(o.symmetry)
+
+	step = cur.step
+	if len(keys) > 0 {
+		gen := 0
+		step = func(g *Grid) *Grid {
+			gen++
+			for len(keys) > 0 && keys[0].gen == gen {
+				convert(g.Cells, cur, keys[0].automaton)
+				cur, keys = keys[0].automaton, keys[1:]
+				g.Wrap = cur.wrap
+			}
+			return cur.step(g)
+		}
+	}
+	pal = func() color.Palette { return cur.pal }
 
 	if o.mask != "" || o.maskData != nil {
 		data := o.maskData
@@ -303,6 +257,173 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal color.Palette, e
 		step = func(g *Grid) *Grid { return keep(inner(g)) }
 	}
 	return g, step, pal, nil
+}
+
+// automaton is what the options make of the rule: the step function, the
+// palette, the edges, and what cells hold (states: 0 when they age, as in B/S).
+type automaton struct {
+	step   func(*Grid) *Grid
+	pal    color.Palette
+	wrap   bool
+	cyclic bool
+	states int
+}
+
+func (o *options) automaton() (a automaton, err error) {
+	gr, ok := gradients[o.palette]
+	if !ok {
+		return a, fmt.Errorf("unknown palette %q (want one of %s)", o.palette, strings.Join(paletteNames(), ", "))
+	}
+	if o.colors != "" {
+		var stops []color.RGBA
+		for _, hex := range strings.Split(o.colors, ",") {
+			c, err := parseHex(hex)
+			if err != nil {
+				return a, fmt.Errorf("-colors: %w", err)
+			}
+			stops = append(stops, c)
+		}
+		if len(stops) < 2 || len(stops) > 8 {
+			return a, fmt.Errorf("-colors: want 2 to 8 colours, got %d", len(stops))
+		}
+		gr = gradient{black, stops}
+	}
+
+	a.wrap = o.wrap
+	switch {
+	case o.cyclic:
+		c := Cyclic{States: o.states, Threshold: o.threshold, Radius: o.radius}
+		switch o.neighborhood {
+		case "moore":
+		case "vonneumann":
+			c.VonNeumann = true
+		default:
+			return a, fmt.Errorf("unknown neighborhood %q (want moore or vonneumann)", o.neighborhood)
+		}
+		if c.States < 2 || c.States > 256 || c.Threshold < 1 || c.Radius < 1 || c.Radius >= min(o.w, o.h) {
+			return a, errors.New("cyclic: want 2 <= states <= 256, threshold >= 1, 1 <= radius < grid size")
+		}
+		a.cyclic, a.states = true, c.States
+		a.step = swapping(func(g, next *Grid) { g.StepCyclicInto(next, c) })
+		// Every state is a live colour, spread evenly; a one-colour gradient
+		// (bw) fades from its background, or every state would look the same.
+		if len(gr.stops) == 1 {
+			gr.stops = []color.RGBA{gr.bg, gr.stops[0]}
+		}
+		a.pal = gr.palette(c.States, false, func(s int) float64 { return float64(s) / float64(c.States-1) })
+	default: // B/S, Generations or Larger than Life
+		rule := resolvePreset(o.rule)
+		if IsLtL(rule) {
+			r, err := ParseLtL(rule)
+			if err != nil {
+				return a, err
+			}
+			if r.Radius >= min(o.w, o.h) {
+				return a, errors.New("Larger than Life: radius must be smaller than the grid")
+			}
+			a.step = swapping(func(g, next *Grid) { g.StepLtLInto(next, r) })
+			if r.States > 2 {
+				a.states = r.States
+			}
+		} else {
+			r, err := ParseRule(rule)
+			if err != nil {
+				return a, err
+			}
+			a.step = swapping(func(g, next *Grid) { g.StepInto(next, r) })
+			a.states = r.States
+		}
+		if states := a.states; states > 0 {
+			// Generations: alive first, then dying states evenly.
+			a.pal = gr.palette(states, true, func(s int) float64 {
+				return float64(s-1) / float64(max(states-2, 1))
+			})
+		} else {
+			// B/S ages 1-255, log scale: the first few generations matter most.
+			a.pal = gr.palette(256, true, func(s int) float64 { return math.Log(float64(s)) / math.Log(255) })
+		}
+	}
+	return a, nil
+}
+
+// liveFlags are the options -at may change during a run.
+var liveFlags = []string{"rule", "cyclic", "states", "threshold", "radius", "neighborhood", "palette", "colors", "wrap"}
+
+type keyframe struct {
+	gen int
+	automaton
+}
+
+// keyframes parses -at, space-separated GEN:FLAG=VALUE changes, into the
+// automaton each generation switches to, in order. Each change builds on the
+// ones before it.
+func (o *options) keyframes() ([]keyframe, error) {
+	type change struct {
+		gen       int
+		flag, val string
+	}
+	var changes []change
+	for _, f := range strings.Fields(o.at) {
+		gen, fv, ok := strings.Cut(f, ":")
+		flag, val, ok2 := strings.Cut(fv, "=")
+		n, err := strconv.Atoi(gen)
+		if !ok || !ok2 || err != nil || n < 1 {
+			return nil, fmt.Errorf("-at %q: want GEN:FLAG=VALUE with GEN >= 1", f)
+		}
+		if !slices.Contains(liveFlags, flag) {
+			return nil, fmt.Errorf("-at %q: %s can't change during a run (want one of %s)", f, flag, strings.Join(liveFlags, ", "))
+		}
+		changes = append(changes, change{n, flag, val})
+	}
+	slices.SortStableFunc(changes, func(a, b change) int { return a.gen - b.gen })
+
+	cur := *o
+	fs := newFlagSet(&cur) // resets cur to the defaults…
+	cur = *o               // …so put the options back
+	var keys []keyframe
+	for _, c := range changes {
+		if err := fs.Set(c.flag, c.val); err != nil {
+			return nil, fmt.Errorf("-at %d:%s=%s: %w", c.gen, c.flag, c.val, err)
+		}
+		switch c.flag { // or the option before would hide the change
+		case "palette":
+			cur.colors = ""
+		case "rule":
+			cur.cyclic = false
+		}
+		a, err := cur.automaton()
+		if err != nil {
+			return nil, fmt.Errorf("-at %d:%s=%s: %w", c.gen, c.flag, c.val, err)
+		}
+		keys = append(keys, keyframe{c.gen, a})
+	}
+	return keys, nil
+}
+
+// convert rewrites cells for the automaton to, when it holds them differently
+// from from: cyclic states wrap round, dying Generations states beyond to's
+// die, and everything else is alive (1) or dead. Cyclic cells count as alive
+// in odd states, which keeps their bands.
+func convert(cells []uint8, from, to automaton) {
+	if from.cyclic == to.cyclic && from.states == to.states {
+		return
+	}
+	for i, v := range cells {
+		alive := v != 0 && (from.states == 0 || v == 1)
+		if from.cyclic {
+			alive = v%2 == 1
+		}
+		switch {
+		case to.cyclic:
+			cells[i] = uint8(int(v) % to.states)
+		case !from.cyclic && from.states > 0 && to.states > 0 && int(v) < to.states:
+			// Generations to Generations: the state stays.
+		case alive:
+			cells[i] = 1
+		default:
+			cells[i] = 0
+		}
+	}
 }
 
 // swapping turns an in-place stepper into a step function that alternates

@@ -350,6 +350,9 @@
     <label>{{.T.generations}} <input name="gens" type="number" min="1" max="{{.MaxGens}}" value="100"></label>
     <label data-format="gif">{{.T.delay}} <input name="delay" type="number" min="0" value="5"></label>
     <label class="check wide" data-format="gif"><input name="pingpong" type="checkbox"> {{.T.pingpong}}</label>
+    <label class="wide" title="{{.T.atHint}}">{{.T.at}}
+      <input name="at" placeholder="80:rule=bosco 150:palette=candy" spellcheck="false">
+    </label>
   </fieldset>
 
   <fieldset>
