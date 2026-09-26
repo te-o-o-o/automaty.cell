@@ -146,21 +146,6 @@ func TestTexts(t *testing.T) {
 	}
 }
 
-func TestDistance(t *testing.T) {
-	for _, tc := range []struct {
-		a, b string
-		want int
-	}{
-		{"B3/S23", "B3/S23", 0},
-		{"B3/S23", "B38/S2", 2},
-		{"345/2/4", "35/2/6", 2},
-	} {
-		if got := distance(tc.a, tc.b); got != tc.want {
-			t.Errorf("distance(%s, %s) = %d, want %d", tc.a, tc.b, got, tc.want)
-		}
-	}
-}
-
 // The cyclic defaults are lively, mutated presets stay valid rules, and
 // random gradients have 2 to 5 valid colours.
 func TestSurpriseHelpers(t *testing.T) {
@@ -172,10 +157,11 @@ func TestSurpriseHelpers(t *testing.T) {
 	}
 	rng := rand.New(rand.NewSource(1))
 	for i := 0; i < 200; i++ {
-		preset := lifeLikePresets[i%len(lifeLikePresets)]
-		if rule := mutate(rng, preset); rule != preset {
-			if _, err := ParseRule(rule); err != nil {
-				t.Errorf("mutate(%s) = %s: %v", preset, rule, err)
+		preset := Presets[i%len(Presets)].Rule
+		o := o
+		if o.rule = mutate(rng, preset); o.rule != preset {
+			if _, err := o.automaton(); err != nil {
+				t.Errorf("mutate(%s) = %s: %v", preset, o.rule, err)
 			}
 		}
 		colors := strings.Split(randomColors(rng), ",")
@@ -318,14 +304,18 @@ func TestRenderMaskAndZip(t *testing.T) {
 	}
 }
 
-// Mutate returns a different, valid rule, and refuses the cyclic mode.
+// Mutate returns a different, valid rule, Larger than Life included, and
+// refuses the cyclic mode.
 func TestMutate(t *testing.T) {
-	rec := httptest.NewRecorder()
-	handleMutate(rec, httptest.NewRequest("GET", "/mutate?rule=life&w=40&h=40", nil))
-	var got map[string]string
-	json.NewDecoder(rec.Body).Decode(&got)
-	if _, err := ParseRule(got["rule"]); rec.Code != http.StatusOK || err != nil || got["rule"] == "B3/S23" {
-		t.Errorf("mutate life: status %d, rule %q, %v", rec.Code, got["rule"], err)
+	for _, preset := range []string{"life", "bosco"} {
+		rec := httptest.NewRecorder()
+		handleMutate(rec, httptest.NewRequest("GET", "/mutate?w=40&h=40&rule="+preset, nil))
+		var got map[string]string
+		json.NewDecoder(rec.Body).Decode(&got)
+		o := options{rule: got["rule"], palette: "age", w: 40, h: 40}
+		if _, err := o.automaton(); rec.Code != http.StatusOK || err != nil || got["rule"] == strings.ToUpper(resolvePreset(preset)) {
+			t.Errorf("mutate %s: status %d, rule %q, %v", preset, rec.Code, got["rule"], err)
+		}
 	}
 	for _, q := range []string{"cyclic=true", "rule=nope"} {
 		rec := httptest.NewRecorder()

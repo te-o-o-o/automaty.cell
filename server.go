@@ -209,15 +209,15 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(reply)
 }
 
-// handleMutate replies with a lively mutant of the page's B/S or Generations
-// rule (one neighbour count changed), as JSON {"rule": …}.
+// handleMutate replies with a lively mutant of the page's rule that looks
+// different (see mutateLively), as JSON {"rule": …}.
 func handleMutate(w http.ResponseWriter, r *http.Request) {
 	o, err := parseQuery(r)
-	if err == nil && (o.cyclic || IsLtL(resolvePreset(o.rule))) {
-		err = errors.New("mutate works on B/S and Generations rules")
+	if err == nil && o.cyclic {
+		err = errors.New("mutate works on rules, not the cyclic mode")
 	}
 	if err == nil {
-		_, err = ParseRule(resolvePreset(o.rule))
+		_, err = o.automaton()
 	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -146,8 +146,8 @@ re-renders on every change, and the equivalent command line shows below it.
   colours, a seed, a symmetry, a start shape, Perlin blobs and an animation (GIF: speed, length, edges,
   back-and-forth), leaving out automata that die, freeze or stay noise (each
   candidate is tried on a small grid first).
-- **Mutate** (B/S and Generations rules) changes 2 to 4 digits of the current rule, keeping only lively
-  mutants: a way to explore the neighbours of a rule you like.
+- **Mutate** changes 2 to 4 digits of the current rule (or, for Larger than Life, its radius, ranges or
+  middle cell), keeping only lively mutants that look different: a way to explore the neighbours of a rule you like.
 - **Theme and language**: pickers at the top right. Theme `bonbon` (default)
   or `arcade`, language English (default) or French. Also in the URL:
   `?theme=arcade&lang=fr`.

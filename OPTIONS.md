@@ -48,7 +48,7 @@ name; the command line below the image shows the ones you changed.
 
 - `-serve` — serves the web page on an address such as `:8080` instead of writing a file.
 - **? RANDOM** — picks random settings that give a lively, animated result.
-- **Mutate** — changes 2 to 4 digits of a B/S or Generations rule, keeping only lively mutants.
+- **Mutate** — changes the rule a little (2 to 4 digits, or for Larger than Life its radius, ranges or middle cell), keeping only lively mutants that look different.
 - **Copy command** — copies the command line that makes the same image.
 - **Copy link** — copies a link to the page with the current settings.
 - **Download** — saves the image or animation shown.

@@ -142,56 +142,80 @@ var lifeLikePresets = func() (rules []string) {
 	return rules
 }()
 
+// minLook is how different a mutant must look from its rule: the largest
+// relative gap between their live, change and structure measures (see
+// activity), from 0 (the same) to 1. Raise it for wilder mutants.
+const minLook = 0.3
+
 // mutateLively returns a mutant of o's rule, 2 to 4 mutations away (see
-// mutate), that looks interesting with o's other settings, or the last
-// mutant tried. One mutation alone often looks just like the rule it came from.
+// mutate), that stays interesting with o's other settings and looks
+// different from the rule it came from: many mutants behave just like it.
+// Failing that, it returns the most different lively mutant tried. When the
+// rule itself fails the test on the small grid, as Larger than Life rules that
+// freeze into blobs do, a mutant that neither dies, fills the grid nor turns
+// to noise will do.
 func mutateLively(rng *rand.Rand, o options) string {
 	rule := strings.ToUpper(resolvePreset(o.rule))
-	last := rule
+	pl, pc, ps := activity(o)
+	strict := lively(false, pl, pc, ps)
+	rel := func(a, b float64) float64 {
+		if a+b == 0 {
+			return 0
+		}
+		return math.Abs(a-b) / (a + b)
+	}
+	best, bestLook := "", -1.0
 	for try := 0; try < 50; try++ {
 		m := rule
 		for range 2 + rng.Intn(3) {
 			m = mutate(rng, m)
 		}
-		if _, err := ParseRule(m); err != nil || distance(m, rule) < 2 {
+		om := o
+		om.rule = m
+		if _, err := om.automaton(); err != nil || m == rule {
 			continue
 		}
-		last = m
-		o.rule = m
-		if interesting(o) {
+		l, c, s := activity(om)
+		if strict && !lively(false, l, c, s) || !strict && (l < 0.02 || l > 0.98 || s < 0.1) {
+			continue
+		}
+		look := max(rel(l, pl), rel(c, pc), rel(s, ps))
+		if look >= minLook {
 			return m
 		}
+		if look > bestLook {
+			best, bestLook = m, look
+		}
 	}
-	return last
+	if best == "" {
+		return mutate(rng, rule)
+	}
+	return best
 }
 
-// distance counts how many neighbour counts, plus the number of states, differ
-// between two rules in the same notation.
-func distance(a, b string) int {
-	pa, pb := strings.Split(a, "/"), strings.Split(b, "/")
-	n := 0
-	for i := range min(len(pa), len(pb)) {
-		if i == 2 { // Generations: the number of states
-			if pa[i] != pb[i] {
-				n++
-			}
-			continue
-		}
-		for d := '0'; d <= '8'; d++ {
-			if strings.ContainsRune(pa[i], d) != strings.ContainsRune(pb[i], d) {
-				n++
-			}
-		}
-	}
-	return n
-}
+// digitWeights makes mutate favour the neighbour counts that come up most at
+// usual densities: flipping 7 or 8 rarely changes anything.
+var digitWeights = [9]int{1, 3, 3, 3, 3, 3, 2, 1, 1}
 
 // mutate flips one neighbour count in a B/S or Generations rule (never birth
-// on 0), or for Generations sometimes changes the number of states.
+// on 0), or for Generations sometimes changes the number of states. Larger
+// than Life rules go to mutateLtL.
 func mutate(rng *rand.Rand, rule string) string {
+	if IsLtL(rule) {
+		return mutateLtL(rng, rule)
+	}
 	parts := strings.Split(rule, "/")
 	toggle := func(digits string, from int) string {
-		d := string(rune('0' + from + rng.Intn(9-from)))
+		total := 0
+		for _, w := range digitWeights[from:] {
+			total += w
+		}
+		n, x := from, rng.Intn(total)
+		for x >= digitWeights[n] {
+			x -= digitWeights[n]
+			n++
+		}
+		d := string(rune('0' + n))
 		if strings.Contains(digits, d) {
 			return strings.Replace(digits, d, "", 1)
 		}
@@ -211,7 +235,7 @@ func mutate(rng *rand.Rand, rule string) string {
 		}
 		return strings.Join(parts, "/")
 	}
-	if len(parts) != 2 { // not B/S notation (Larger than Life…): leave it
+	if len(parts) != 2 { // not a rule mutate knows: leave it
 		return rule
 	}
 	i, from := rng.Intn(2), 0 // B…/S…
@@ -220,6 +244,47 @@ func mutate(rng *rand.Rand, rule string) string {
 	}
 	parts[i] = parts[i][:1] + toggle(parts[i][1:], from)
 	return strings.Join(parts, "/")
+}
+
+// mutateLtL changes one thing in a Larger than Life rule: the radius (its
+// ranges scaled along, so it looks alike at another size), one end of the
+// survival or birth range (by up to a twelfth of the neighbourhood), or
+// whether the middle cell counts.
+func mutateLtL(rng *rand.Rand, rule string) string {
+	r, err := ParseLtL(rule)
+	if err != nil {
+		return rule
+	}
+	side := func(radius int) int { return (2*radius + 1) * (2*radius + 1) }
+	n := side(r.Radius)
+	nudge := func(v int) int { return v + (1+rng.Intn(max(1, n/12)))*(1-2*rng.Intn(2)) }
+	switch rng.Intn(6) {
+	case 0:
+		radius := min(20, max(1, r.Radius+1-2*rng.Intn(2)))
+		k := float64(side(radius)) / float64(n)
+		scale := func(v int) int { return int(math.Round(float64(v) * k)) }
+		r.Radius, r.SMin, r.SMax, r.BMin, r.BMax = radius, scale(r.SMin), scale(r.SMax), scale(r.BMin), scale(r.BMax)
+		n = side(radius)
+	case 1:
+		r.SMin = nudge(r.SMin)
+	case 2:
+		r.SMax = nudge(r.SMax)
+	case 3:
+		r.BMin = nudge(r.BMin)
+	case 4:
+		r.BMax = nudge(r.BMax)
+	default:
+		r.Middle = !r.Middle
+	}
+	r.SMin = min(max(r.SMin, 0), n)
+	r.SMax = min(max(r.SMax, r.SMin), n)
+	r.BMin = min(max(r.BMin, 1), n)
+	r.BMax = min(max(r.BMax, r.BMin), n)
+	middle := 0
+	if r.Middle {
+		middle = 1
+	}
+	return fmt.Sprintf("R%d,C%d,M%d,S%d..%d,B%d..%d,NM", r.Radius, r.States, middle, r.SMin, r.SMax, r.BMin, r.BMax)
 }
 
 // randomColors returns 2 to 5 colours as RRGGBB,…: hues a random step apart,
@@ -287,7 +352,12 @@ func randomRule(rng *rand.Rand) string {
 // changing, and neighbours look more alike than random cells would.
 func interesting(o options) bool {
 	live, change, structure := activity(o)
-	if o.cyclic {
+	return lively(o.cyclic, live, change, structure)
+}
+
+// lively is interesting's test on activity's measures.
+func lively(cyclic bool, live, change, structure float64) bool {
+	if cyclic {
 		// Spirals and waves change everywhere at once, like noise does: only
 		// structure sets them apart.
 		return change > 0.02 && structure > 0.2
