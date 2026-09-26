@@ -1,9 +1,9 @@
 # automaty.cell
 
 <p align="center">
-  <img src="docs/demo1.gif" width="32%" alt="An automaton evolving">
-  <img src="docs/demo2.gif" width="32%" alt="An automaton growing in a start shape">
-  <img src="docs/demo3.gif" width="32%" alt="Square spirals of a cyclic automaton">
+  <img src="docs/blobs.gif" width="32%" alt="Mirrored blobs of a Larger than Life rule">
+  <img src="docs/swirls.gif" width="32%" alt="Colourful swirls of a cyclic automaton">
+  <img src="docs/melt.gif" width="32%" alt="Cyclic chaos melting into blobs, then rippling out again">
 </p>
 
 Procedural images (PNG), animations (GIF) and image sequences (ZIP) from 2D
@@ -14,124 +14,33 @@ Go 1.22+, standard library only.
 go build -o automaty.cell .
 ```
 
-## Examples
-
-Game of Life, 300 generations as an animated GIF:
+## The three above
 
 ```
-./automaty.cell -rule B3/S23 -w 200 -h 200 -scale 4 -gens 300 -seed 42 -o life.gif
+# Larger than Life (Globe), mirrored into four
+./automaty.cell -rule globe -symmetry 4 -density 0.5 -w 300 -h 300 -scale 1 -gens 120 -delay 6 -palette candy -o blobs.gif
+
+# A cyclic automaton in custom colours
+./automaty.cell -cyclic -states 4 -threshold 3 -neighborhood moore -w 150 -h 150 -gens 120 -delay 6 -colors ff3b3b,ff3ee0,f7f33c,3ed4f7 -o swirls.gif
+
+# Changes during the run: cyclic chaos melts into Majority blobs, then ripples out again
+./automaty.cell -cyclic -states 8 -threshold 2 -neighborhood moore -w 300 -h 300 -scale 1 -gens 150 -delay 6 -palette cyber -at '50:rule=majority 90:cyclic=true 90:threshold=3 90:states=5' -o melt.gif
 ```
 
-A still of HighLife's 200th generation:
+## What it does
 
-```
-./automaty.cell -rule highlife -density 0.35 -gens 200 -o highlife.png
-```
+- **Rules**: any B/S rule (Game of Life and co, in Golly's notation), Generations,
+  Larger than Life over big neighbourhoods, and cyclic automata. 21 named presets
+  (`-list-rules`).
+- **Starts**: random or Perlin noise islands, mirror and rotation symmetries,
+  shapes (disc, ring, spiral…), methuselahs, or an image mask to map onto a façade.
+- **Changes during the run** with `-at`: switch the rule, palette or edges at a
+  given generation while the cells carry on.
+- **Output**: the last generation as PNG, an animated GIF (back-and-forth loops
+  with `-pingpong`), or one PNG per generation in a ZIP for Resolume, MadMapper,
+  TouchDesigner… 23 palettes, or your own colours.
 
-Day & Night, slower animation (10/100 s per frame):
-
-```
-./automaty.cell -rule daynight -density 0.5 -w 120 -h 120 -scale 3 -gens 150 -delay 10 -o daynight.gif
-```
-
-A maze, with dead edges instead of a wrapping grid:
-
-```
-./automaty.cell -rule maze -density 0.1 -w 120 -h 120 -gens 300 -wrap=false -o maze.png
-```
-
-Seeds exploding from a few cells, in black and white:
-
-```
-./automaty.cell -rule seeds -density 0.02 -gens 60 -palette bw -o seeds.gif
-```
-
-Any rule in B/S notation (as in Golly) works, not just the presets:
-
-```
-./automaty.cell -rule B35678/S5678 -density 0.5 -gens 100 -o custom.png
-```
-
-Generations rules (`S/B/C` notation: survival / birth / number of states):
-
-```
-./automaty.cell -rule 345/2/4 -gens 200 -palette fire -o starwars.gif
-./automaty.cell -rule brian -gens 150 -o brian.png
-```
-
-Larger than Life: B/S over big neighbourhoods (radius up to 20), with ranges
-of neighbour counts, in Golly's notation. Soft, organic shapes: Bosco's rule
-grows swimming "bugs", Majority melts into smooth continents:
-
-```
-./automaty.cell -rule bosco -density 0.5 -gens 150 -palette candy -o bugs.png
-./automaty.cell -rule R4,C0,M1,S41..81,B41..81,NM -density 0.5 -gens 150 -o majority.png
-./automaty.cell -rule waffle -density 0.5 -gens 150 -o waffle.gif
-```
-
-Cyclic automata: a cell in state k moves to k+1 (modulo `-states`) when at
-least `-threshold` neighbours are already in state k+1:
-
-```
-./automaty.cell -cyclic -states 8 -threshold 5 -radius 3 -gens 400 -scale 3 -palette viridis -o spirals.png
-./automaty.cell -cyclic -states 14 -threshold 1 -neighborhood vonneumann -gens 500 -scale 3 -palette ocean -o cca.png
-./automaty.cell -cyclic -states 3 -threshold 3 -gens 300 -scale 3 -o 313.png
-./automaty.cell -cyclic -states 6 -threshold 2 -radius 2 -neighborhood vonneumann -gens 400 -scale 3 -o maze-spirals.png
-```
-
-Perlin noise islands instead of a plain random start: cells are only born
-inside the blobs, which keeps clear continents. The noise tiles seamlessly,
-so with the default wrapping edges the images still make perfect mosaics:
-
-```
-./automaty.cell -rule daynight -density 0.5 -noise 40 -gens 150 -palette ocean -o continents.png
-./automaty.cell -cyclic -noise 60 -gens 60 -palette rainbow -o waves.png
-```
-
-Symmetric starts (mandalas and kaleidoscopes): the random start is mirrored,
-and since the rules treat every direction alike, the pattern stays symmetric:
-
-```
-./automaty.cell -rule belzhab -symmetry 8 -gens 150 -seed 5 -palette fire -o mandala.png
-./automaty.cell -rule starwars -symmetry 8 -gens 120 -seed 9 -palette viridis -o butterfly.png
-```
-
-Rotations (pinwheels), start shapes, and a back-and-forth loop for video
-mapping (with the default wrapping edges, images also tile seamlessly):
-
-```
-./automaty.cell -rule belzhab -symmetry r4 -seed 5 -gens 150 -palette cyber -o pinwheel.png
-./automaty.cell -rule belzhab -shape ring -seed 5 -gens 90 -palette candy -o ring.png
-./automaty.cell -cyclic -shape disc -gens 120 -pingpong -o loop.gif
-```
-
-Changes during the run: from a generation on, `-at` switches the rule, the
-palette or the edges while the cells carry on. Here cyclic chaos melts into
-Majority blobs halfway:
-
-```
-./automaty.cell -cyclic -states 8 -threshold 2 -neighborhood moore -gens 200 -palette cyber -at '100:rule=majority' -o melt.gif
-```
-
-Mapping onto a real shape: a mask (a white silhouette on black, or a cut-out
-logo) confines the automaton, and a ZIP of PNGs loads in video mapping tools:
-
-```
-./automaty.cell -rule belzhab -mask facade.png -density 0.5 -gens 150 -palette cyber -o facade.png
-./automaty.cell -cyclic -mask facade.png -gens 40 -pingpong -o facade.zip
-```
-
-A custom gradient:
-
-```
-./automaty.cell -rule belzhab -gens 150 -colors 1a0033,ff3ea5,ffcc00,3ef3ff -o belzhab.png
-```
-
-List the named rules:
-
-```
-./automaty.cell -list-rules
-```
+Every option in one sentence: [OPTIONS.md](OPTIONS.md); defaults: `./automaty.cell -h`.
 
 ## Web page
 
@@ -139,66 +48,11 @@ List the named rules:
 ./automaty.cell -serve :8080
 ```
 
-Then open http://localhost:8080: every option has its field, the image
-re-renders on every change, and the equivalent command line shows below it.
-
-- **? RANDOM** picks a rule (B/S, Generations or cyclic),
-  colours, a seed, a symmetry, a start shape, Perlin blobs and an animation (GIF: speed, length, edges,
-  back-and-forth), leaving out automata that die, freeze or stay noise (each
-  candidate is tried on a small grid first).
-- **Mutate** changes 2 to 4 digits of the current rule (or, for Larger than Life, its radius, ranges or
-  middle cell), keeping only lively mutants that look different: a way to explore the neighbours of a rule you like.
-- **Theme and language**: pickers at the top right. Theme `bonbon` (default)
-  or `arcade`, language English (default) or French. Also in the URL:
-  `?theme=arcade&lang=fr`.
-- **Copy link**: the page's URL holds its settings (and theme and language):
-  send it and the other person sees the same creation. A mask, being a local
-  file, is not part of it.
-- **Frames (ZIP)**: every generation as a PNG, for Resolume, MadMapper,
-  TouchDesigner…
-
-The page runs the same engine as the CLI (the same image, pixel for pixel),
-with limits to stay usable online: grids up to 500×500, scale 8, 2000
-generations, 111 million cells × generations (about 1 s of work at worst),
-GIFs of 80 million pixels (about 80 MB), masks of 10 MB, 2 renders at a time.
-
-## Options
-
-The same list in one sentence per option: [OPTIONS.md](OPTIONS.md).
-
-| Flag | Default | Meaning |
-|---|---|---|
-| `-rule` | `B3/S23` | B/S rule (`B36/S23`, `b2/s`…), Generations S/B/C rule (`345/2/4`, `/2/3`…), Larger than Life rule (`R5,C0,M1,S34..58,B34..45,NM`: radius, states, middle counted, survival and birth ranges, Moore neighbourhood) or preset name |
-| `-list-rules` | | Print the presets and exit |
-| `-w`, `-h` | `380` | Grid size in cells |
-| `-scale` | `2` | Pixels per cell |
-| `-gens` | `100` | Number of generations, the start included |
-| `-seed` | `1` | Random seed: same seed, same result |
-| `-symmetry` | `1` | Symmetric start: `1` (none), mirrors `2`, `4`, `8`, rotations `r2` (half turn), `r4` (quarter turns); `8` and `r4` need a square grid |
-| `-shape` | `all` | Start area, dead elsewhere: `all`, `dot`, `disc`, `ring`, `cross`, `frame`, `stripes`, `target`, `checker`, `spiral`, or a methuselah: `rpentomino`, `acorn`, `diehard` |
-| `-at` | | Changes during the run, `GEN:FLAG=VALUE` separated by spaces: `rule`, `cyclic`, `states`, `threshold`, `radius`, `neighborhood`, `palette`, `colors`, `wrap` |
-| `-noise` | `0` | Start in Perlin noise islands about this many cells wide, empty in between (`0`: plain random); the noise tiles seamlessly, like wrapped grids |
-| `-density` | `0.3` | Initial share of live cells (unused in cyclic mode: states are uniform) |
-| `-wrap` | `true` | Wrapping (toroidal) edges; `-wrap=false` for dead edges |
-| `-palette` | `age` | Gradient (`-h` lists them all): `age`, `aurora`, `berry`, `bw`, `candy`, `cherry`, `cyber`, `dusk`, `fire`, `forest`, `gold`, `lagoon`, `lavender`, `lime`, `mint`, `mono`, `neon`, `ocean`, `peach`, `rainbow`, `sunset`, `toxic`, `viridis` |
-| `-colors` | | Custom gradient of 2 to 8 colours: `1a0033,ff3ea5,ffcc00` (replaces `-palette`) |
-| `-cyclic` | `false` | Cyclic automaton instead of `-rule` |
-| `-states` | `14` | Cyclic: number of states (2-256) |
-| `-threshold` | `1` | Cyclic: neighbours in the next state needed to advance |
-| `-neighborhood` | `vonneumann` | Cyclic: `moore` (square) or `vonneumann` (diamond) |
-| `-radius` | `1` | Cyclic: neighbourhood radius |
-| `-delay` | `5` | GIF frame delay, in 1/100 s |
-| `-pingpong` | `false` | GIF or ZIP played forward then backward: a loop without a jump |
-| `-mask` | | PNG or JPEG image: life stays inside its light areas (or opaque ones, if it has transparency), from start to end |
-| `-o` | `out.png` | Output file: `.png` (last generation), `.gif` (animation) or `.zip` (one PNG per generation, for Resolume, MadMapper, TouchDesigner…) |
-| `-serve` | | Serve the web page on this address (`:8080`) instead of writing a file |
-
-Each state is placed along the gradient:
-- B/S: by the cell's age (log scale), from the first colour (just born) to the
-  last (alive for long); dead cells take the background colour.
-- Generations: alive is the first colour, then the dying states up to the
-  last; dead cells take the background.
-- Cyclic: states spread evenly over the whole gradient.
+Every option has its field and the image re-renders on every change, with its
+command line below. **? RANDOM** picks lively settings, **Mutate** explores the
+neighbours of a rule you like, and the page's link holds its settings, to share
+a creation. Same engine as the CLI, with limits for online use (grids up to
+500×500, GIFs up to about 80 MB).
 
 ## Tests
 
