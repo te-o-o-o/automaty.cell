@@ -14,7 +14,8 @@
   <a href="#what-it-does">Features</a> ·
   <a href="#web-page">Web page</a> ·
   <a href="#agents-mcp">Agents</a> ·
-  <a href="OPTIONS.md">Options</a>
+  <a href="OPTIONS.md">Options</a> ·
+  <a href="README.fr.md">Français</a>
 </p>
 
 <table align="center">
@@ -85,8 +86,9 @@ its opaque ones, for a cut-out logo), ready to map onto a façade or a logo.
 - **Changes during the run** with `-at`: switch the rule, palette or edges at a
   given generation while the cells carry on.
 - **Output**: the last generation as PNG, an animated GIF (back-and-forth loops
-  with `-pingpong`), or one PNG per generation in a ZIP for Resolume, MadMapper,
-  TouchDesigner… 23 palettes, or your own colours.
+  with `-pingpong`, an end as soon as it freezes or loops with `-stop`), or one
+  PNG per generation in a ZIP for Resolume, MadMapper, TouchDesigner…
+  23 palettes, or your own colours.
 
 Every option in one sentence: [OPTIONS.md](OPTIONS.md); defaults: `./automaty.cell -h`.
 
@@ -100,7 +102,7 @@ Every option has its field and the image re-renders on every change, with its
 command line below. **? RANDOM** picks lively settings, **Mutate** explores the
 neighbours of a rule you like, and the page's link holds its settings, to share
 a creation. Same engine as the CLI, with limits for online use (grids up to
-500×500, GIFs up to about 80 MB).
+500×500, GIFs up to about 80 MB). The page comes in English and French.
 
 ## Agents (MCP)
 
