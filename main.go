@@ -233,6 +233,10 @@ func (o *options) setup() (g *Grid, step func(*Grid) *Grid, pal func() color.Pal
 		g.RandomizeStates(o.seed, o.states)
 	case o.noise > 0:
 		g.RandomizeNoise(o.seed, o.density, o.noise)
+	case IsGrayScott(resolvePreset(o.rule)):
+		// Plain random cells blur into an even mix that fades out: Gray-Scott
+		// needs the islands to grow from.
+		g.RandomizeNoise(o.seed, o.density, 30)
 	default:
 		g.Randomize(o.seed, o.density)
 	}
@@ -335,6 +339,16 @@ func (o *options) automaton() (a automaton, err error) {
 		a.pal = gr.palette(c.States, false, func(s int) float64 { return float64(s) / float64(c.States-1) })
 	default: // B/S, Generations or Larger than Life
 		rule := resolvePreset(o.rule)
+		if IsGrayScott(rule) {
+			r, err := ParseGrayScott(rule)
+			if err != nil {
+				return a, err
+			}
+			a.step = swapping(r.Stepper())
+			// The most V in the first colour, as for the youngest cells.
+			a.pal = gr.palette(256, true, func(s int) float64 { return float64(255-s) / 254 })
+			return a, nil
+		}
 		if IsLtL(rule) {
 			r, err := ParseLtL(rule)
 			if err != nil {

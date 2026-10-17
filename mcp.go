@@ -34,6 +34,7 @@ const recipes = `## Recipes
 - Cyclic swirls in custom colours: -cyclic -states=4 -threshold=3 -neighborhood=moore -w=150 -h=150 -gens=120 -colors=ff3b3b,ff3ee0,f7f33c,3ed4f7
 - A story in three acts, chaos melting into blobs then rippling out: -cyclic -states=8 -threshold=2 -neighborhood=moore -w=300 -h=300 -scale=1 -gens=150 -palette=cyber -at=50:rule=majority 90:cyclic=true 90:threshold=3 90:states=5
 - Two runs in a row, the second carrying on from the first's cells: run A's options with -gens set to both lengths added up, and -at=<A's gens>:rule=<B's rule> <A's gens>:palette=<B's palette>… (only the options -at accepts can change)
+- Reaction-diffusion corals, spots or fingerprints: -rule=reef (or mitosis, fingerprint, worms, solitons, or F<feed>,K<kill>) -w=200 -h=200 -gens=300 -palette=candy; it grows slower than rules, so give it more generations
 - Growth from a single seed: -rule=life -shape=acorn -w=200 -h=200 -gens=300, or -shape=dot with any rule
 - Lively rules need a matching density: Majority, Globe and Day & Night want about 0.5, Life about 0.3, Seeds a few percent.
 `

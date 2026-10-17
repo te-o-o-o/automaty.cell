@@ -597,3 +597,50 @@ func (g *Grid) StepCyclic(c Cyclic) *Grid {
 	g.StepCyclicInto(next, c)
 	return next
 }
+
+// Gray-Scott: bad notation is refused, an empty grid stays empty, islands grow
+// into patterns, and an eightfold start stays exactly eightfold.
+func TestGrayScott(t *testing.T) {
+	for _, bad := range []string{"F0.05", "F0.05,X0.06", "Fa,K0.06", "F0.5,K0.06", "FNaN,K0.06"} {
+		if _, err := ParseGrayScott(bad); err == nil {
+			t.Errorf("ParseGrayScott(%q): no error", bad)
+		}
+	}
+	r, err := ParseGrayScott("f0.0545,k0.062")
+	if err != nil || r != (GrayScott{0.0545, 0.062}) {
+		t.Fatalf("ParseGrayScott: %v, %v", r, err)
+	}
+
+	step := swapping(r.Stepper())
+	g := NewGrid(20, 20, true)
+	for range 10 {
+		g = step(g)
+	}
+	if slices.ContainsFunc(g.Cells, func(v uint8) bool { return v != 0 }) {
+		t.Fatal("empty grid grew something")
+	}
+
+	const n = 64
+	g = NewGrid(n, n, true)
+	g.RandomizeNoise(1, 0.3, 30)
+	g.Symmetrize("8")
+	step = swapping(r.Stepper())
+	for range 100 {
+		g = step(g)
+	}
+	live := 0
+	for y := 0; y < n; y++ {
+		for x := 0; x < n; x++ {
+			v := g.Cells[y*n+x]
+			if v != 0 {
+				live++
+			}
+			if v != g.Cells[y*n+n-1-x] || v != g.Cells[x*n+y] {
+				t.Fatalf("(%d,%d) lost the symmetry", x, y)
+			}
+		}
+	}
+	if live < n*n/10 {
+		t.Fatalf("%d cells with V out of %d: the islands faded", live, n*n)
+	}
+}

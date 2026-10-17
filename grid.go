@@ -44,6 +44,12 @@ var Presets = []struct{ Name, Rule string }{
 	{"majorly", "R7,C0,M1,S113..225,B113..225,NM"},
 	{"waffle", "R7,C0,M1,S100..200,B75..170,NM"},
 	{"globe", "R8,C0,M0,S163..223,B74..252,NM"},
+	// Gray-Scott reaction-diffusion: spots, stripes and corals.
+	{"mitosis", "F0.0367,K0.0649"},
+	{"reef", "F0.0545,K0.062"},
+	{"fingerprint", "F0.037,K0.06"},
+	{"worms", "F0.078,K0.061"},
+	{"solitons", "F0.03,K0.062"},
 }
 
 // Cyclic is a cyclic cellular automaton: a cell in state k moves to state
@@ -572,4 +578,92 @@ func parseCounts(rule, digits string, counts *[9]bool) error {
 		counts[c-'0'] = true
 	}
 	return nil
+}
+
+// GrayScott is a Gray-Scott reaction-diffusion, written F0.055,K0.062: two
+// chemicals spread over the grid, U twice as fast as V; V feeds on U
+// (U + 2V → 3V), U is fed at rate F and V drained at rate F + K. It is not
+// strictly a cellular automaton: each cell holds two floats, and Cells only
+// shows V, as 1-255 (0 where there is none).
+type GrayScott struct{ F, K float64 }
+
+// IsGrayScott reports whether a rule is written in Gray-Scott notation.
+func IsGrayScott(rule string) bool { return strings.HasPrefix(strings.ToUpper(rule), "F") }
+
+// ParseGrayScott reads Gray-Scott notation, e.g. F0.055,K0.062.
+func ParseGrayScott(s string) (GrayScott, error) {
+	var r GrayScott
+	f, k, ok := strings.Cut(strings.ToUpper(s), ",")
+	var errF, errK error
+	if ok && strings.HasPrefix(k, "K") {
+		r.F, errF = strconv.ParseFloat(f[1:], 64)
+		r.K, errK = strconv.ParseFloat(k[1:], 64)
+	}
+	switch {
+	case !ok || !strings.HasPrefix(k, "K") || errF != nil || errK != nil:
+		return r, fmt.Errorf("rule %q: want F<feed>,K<kill>, e.g. F0.055,K0.062", s)
+	case !(r.F >= 0 && r.F <= 0.1 && r.K >= 0 && r.K <= 0.1): // NaN fails too
+		return r, fmt.Errorf("rule %q: feed and kill must be 0 to 0.1", s)
+	}
+	return r, nil
+}
+
+// grayScottSteps is how many reaction-diffusion steps make one generation:
+// patterns take thousands of steps to grow.
+const grayScottSteps = 10
+
+// Stepper returns an in-place stepper for swapping. It keeps U and V from one
+// call to the next; a cell changed from outside since the last call (the
+// starting grid, a mask, an -at change) restarts from it: a live one with
+// U = V = 0.5, a dead one empty (U = 1, V = 0).
+func (r GrayScott) Stepper() func(g, next *Grid) {
+	var u, v, u2, v2 []float64
+	var last []uint8
+	return func(g, next *Grid) {
+		W, H := g.W, g.H
+		fresh := last == nil
+		if fresh {
+			n := W * H
+			u, v, u2, v2, last = make([]float64, n), make([]float64, n), make([]float64, n), make([]float64, n), make([]uint8, n)
+		}
+		for i, c := range g.Cells {
+			switch {
+			case !fresh && c == last[i]:
+			case c == 0:
+				u[i], v[i] = 1, 0
+			default:
+				u[i], v[i] = 0.5, 0.5
+			}
+		}
+		side := func(i, n int) int {
+			if g.Wrap {
+				return (i + n) % n
+			}
+			return min(max(i, 0), n-1) // no flow through the edges
+		}
+		left, right := make([]int, W), make([]int, W)
+		for x := range left {
+			left[x], right[x] = side(x-1, W), side(x+1, W)
+		}
+		for range grayScottSteps {
+			for y := 0; y < H; y++ {
+				row, up, down := y*W, side(y-1, H)*W, side(y+1, H)*W
+				for x := 0; x < W; x++ {
+					i, l, rt := row+x, left[x], right[x]
+					// Neighbours are added in pairs that mirrors and quarter
+					// turns only swap: a symmetric start stays exactly symmetric.
+					lu := 0.2*((u[row+l]+u[row+rt])+(u[up+x]+u[down+x])) + 0.05*((u[up+l]+u[down+rt])+(u[up+rt]+u[down+l])) - u[i]
+					lv := 0.2*((v[row+l]+v[row+rt])+(v[up+x]+v[down+x])) + 0.05*((v[up+l]+v[down+rt])+(v[up+rt]+v[down+l])) - v[i]
+					uvv := u[i] * v[i] * v[i]
+					u2[i] = u[i] + lu - uvv + r.F*(1-u[i])
+					v2[i] = v[i] + 0.5*lv + uvv - (r.F+r.K)*v[i]
+				}
+			}
+			u, u2, v, v2 = u2, u, v2, v
+		}
+		for i, x := range v {
+			next.Cells[i] = uint8(min(max(x*510, 0), 255)) // V rarely tops 0.5
+		}
+		copy(last, next.Cells)
+	}
 }

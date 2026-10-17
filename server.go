@@ -148,6 +148,11 @@ func parseQuery(r *http.Request) (*options, error) {
 }
 
 func checkLimits(o *options) error {
+	work := o.w * o.h * o.gens
+	if !o.cyclic && IsGrayScott(resolvePreset(o.rule)) {
+		// ponytail: -at switching to Gray-Scott mid-run isn't weighed; weigh each keyframe if it ever matters
+		work *= 6 // 10 reaction-diffusion steps per generation: about 6× a rule
+	}
 	switch {
 	case o.w > maxSide || o.h > maxSide:
 		return fmt.Errorf("grid is at most %d×%d cells here (use the CLI for more)", maxSide, maxSide)
@@ -155,7 +160,7 @@ func checkLimits(o *options) error {
 		return fmt.Errorf("scale is at most %d here", maxScale)
 	case o.gens > maxGens:
 		return fmt.Errorf("at most %d generations here", maxGens)
-	case o.w*o.h*o.gens > maxWork:
+	case work > maxWork:
 		return errors.New("too much work for the web page: lower the grid size or generations (or use the CLI)")
 	case (o.gif || o.zip) && o.w*o.h*o.scale*o.scale*o.gens > maxPixels:
 		return errors.New("GIF too large for the web page: lower the grid size, scale or generations (or use the CLI)")
