@@ -188,10 +188,13 @@ var digitWeights = [9]int{1, 3, 3, 3, 3, 3, 2, 1, 1}
 
 // mutate flips one neighbour count in a B/S or Generations rule (never birth
 // on 0), or for Generations sometimes changes the number of states. Larger
-// than Life rules go to mutateLtL.
+// than Life rules go to mutateLtL, Gray-Scott ones to mutateGrayScott.
 func mutate(rng *rand.Rand, rule string) string {
 	if IsLtL(rule) {
 		return mutateLtL(rng, rule)
+	}
+	if IsGrayScott(rule) {
+		return mutateGrayScott(rng, rule)
 	}
 	parts := strings.Split(rule, "/")
 	toggle := func(digits string, from int) string {
@@ -274,6 +277,25 @@ func mutateLtL(rng *rand.Rand, rule string) string {
 		middle = 1
 	}
 	return fmt.Sprintf("R%d,C%d,M%d,S%d..%d,B%d..%d,NM", r.Radius, r.States, middle, r.SMin, r.SMax, r.BMin, r.BMax)
+}
+
+// mutateGrayScott nudges the feed or kill rate of a Gray-Scott rule by 0.001
+// to 0.003: patterns change a lot within a few thousandths.
+func mutateGrayScott(rng *rand.Rand, rule string) string {
+	r, err := ParseGrayScott(rule)
+	if err != nil {
+		return rule
+	}
+	nudge := func(v float64) float64 {
+		v += float64(1+rng.Intn(3)) / 1000 * float64(1-2*rng.Intn(2))
+		return math.Round(min(max(v, 0), 0.1)*10000) / 10000
+	}
+	if rng.Intn(2) == 0 {
+		r.F = nudge(r.F)
+	} else {
+		r.K = nudge(r.K)
+	}
+	return "F" + strconv.FormatFloat(r.F, 'f', -1, 64) + ",K" + strconv.FormatFloat(r.K, 'f', -1, 64)
 }
 
 // randomColors returns 2 to 5 colours as RRGGBB,…: hues a random step apart,
