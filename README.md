@@ -9,7 +9,7 @@
 <p align="center"><sub>v0.4.0 · Go 1.22+ · zero dependencies · MIT</sub></p>
 
 <p align="center">
-  <a href="#the-three-above">Examples</a> ·
+  <a href="#the-four-above">Examples</a> ·
   <a href="#on-your-own-image">On an image</a> ·
   <a href="#what-it-does">Features</a> ·
   <a href="#web-page">Web page</a> ·
@@ -21,7 +21,10 @@
   <tr>
     <td align="center"><img src="docs/blobs.gif" width="240" alt="Mirrored blobs of a Larger than Life rule"><br><sub>Globe, mirrored into four</sub></td>
     <td align="center"><img src="docs/swirls.gif" width="240" alt="Colourful swirls of a cyclic automaton"><br><sub>Cyclic, custom colours</sub></td>
+  </tr>
+  <tr>
     <td align="center"><img src="docs/spiral.gif" width="240" alt="Dense lace mirrored eightfold, played back and forth"><br><sub>Generations 24/234/6, eightfold, back and forth</sub></td>
+    <td align="center"><img src="docs/mitosis-reef.gif" width="240" alt="Eightfold spots dividing, then melting into coral-like stripes"><br><sub>Gray-Scott mitosis turning to reef, eightfold</sub></td>
   </tr>
 </table>
 
@@ -38,7 +41,7 @@ signed), or with Go:
 go install github.com/te-o-o-o/automaty.cell@latest
 ```
 
-## The three above
+## The four above
 
 ```
 # Larger than Life (Globe), mirrored into four
@@ -49,6 +52,9 @@ go install github.com/te-o-o-o/automaty.cell@latest
 
 # A Generations rule grown from a spiral, mirrored eightfold, looping back and forth
 ./automaty.cell -rule=24/234/6 -seed=195067 -symmetry=8 -shape=spiral -density=0.47 -gens=60 -delay=2 -pingpong=true -w=280 -h=280 -colors='d2f2c0,1a6c7f,00e9f2,ff00fe' -o spiral.gif
+
+# Gray-Scott reaction-diffusion: eightfold spots dividing, then turning to coral at generation 90
+./automaty.cell -rule=mitosis -symmetry=8 -w=240 -h=240 -scale=1 -gens=180 -delay=4 -palette=berry -at=90:rule=reef -o mitosis-reef.gif
 ```
 
 ## On your own image
