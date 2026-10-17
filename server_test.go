@@ -346,3 +346,24 @@ func TestMutate(t *testing.T) {
 		}
 	}
 }
+
+// Mutants of B/S rules stay valid, whichever way B and S are written, and
+// some turn into Generations with the same births and survivals.
+func TestMutateToGenerations(t *testing.T) {
+	rng := rand.New(rand.NewSource(1))
+	gens := 0
+	for range 200 {
+		for _, rule := range []string{"B3/S23", "S23/B3"} {
+			m := mutate(rng, rule)
+			if _, err := ParseRule(m); err != nil {
+				t.Fatalf("mutate(%s) = %s: %v", rule, m, err)
+			}
+			if strings.HasPrefix(m, "23/3/") {
+				gens++
+			}
+		}
+	}
+	if gens == 0 {
+		t.Error("no B/S rule turned into Generations")
+	}
+}

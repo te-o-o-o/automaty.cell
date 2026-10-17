@@ -69,6 +69,12 @@ binaries there by hand is still left to do.
   would favour cyclic automata, which pass the interest test most often.
 - Mutate weighs neighbour counts by how often they occur: flipping 7 or 8
   rarely changes anything.
+- Mutants looked too much alike with 2 to 4 changes and a 0.3 difference
+  threshold (`minLook`): now 2 to 6 changes and 0.5, at the same speed (under
+  half a second a click). Gray-Scott steps were far too small (0.001 to 0.003):
+  now up to 0.012 on feed and 0.004 on kill, which is the more sensitive one.
+  Turning B/S into Generations one change in six made nearly every Life mutant
+  Generations, as changes add up: one in twelve.
 
 ## Web page and MCP
 

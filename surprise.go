@@ -135,7 +135,7 @@ func surprise(rng *rand.Rand, base options) options {
 // minLook is how different a mutant must look from its rule: the largest
 // relative gap between their live, change and structure measures (see
 // activity), from 0 (the same) to 1. Raise it for wilder mutants.
-const minLook = 0.3
+const minLook = 0.5
 
 // mutateLively returns a mutant of o's rule, 2 to 4 mutations away (see
 // mutate), that stays interesting with o's other settings and looks
@@ -157,7 +157,7 @@ func mutateLively(rng *rand.Rand, o options) string {
 	best, bestLook := "", -1.0
 	for try := 0; try < 50; try++ {
 		m := rule
-		for range 2 + rng.Intn(3) {
+		for range 2 + rng.Intn(5) {
 			m = mutate(rng, m)
 		}
 		om := o
@@ -188,7 +188,8 @@ func mutateLively(rng *rand.Rand, o options) string {
 var digitWeights = [9]int{1, 3, 3, 3, 3, 3, 2, 1, 1}
 
 // mutate flips one neighbour count in a B/S or Generations rule (never birth
-// on 0), or for Generations sometimes changes the number of states. Larger
+// on 0), or for Generations sometimes changes the number of states, or one
+// time in twelve turns a B/S rule into Generations. Larger
 // than Life rules go to mutateLtL, Gray-Scott ones to mutateGrayScott.
 func mutate(rng *rand.Rand, rule string) string {
 	if IsLtL(rule) {
@@ -230,6 +231,13 @@ func mutate(rng *rand.Rand, rule string) string {
 	}
 	if len(parts) != 2 { // not a rule mutate knows: leave it
 		return rule
+	}
+	if rng.Intn(12) == 0 { // B/S to Generations: same births and survivals, trailing colours
+		b, s := parts[0], parts[1]
+		if strings.HasPrefix(b, "S") {
+			b, s = s, b
+		}
+		return s[1:] + "/" + b[1:] + "/" + strconv.Itoa(3+rng.Intn(6))
 	}
 	i, from := rng.Intn(2), 0 // B…/S…
 	if parts[i][0] == 'B' {
@@ -280,21 +288,22 @@ func mutateLtL(rng *rand.Rand, rule string) string {
 	return fmt.Sprintf("R%d,C%d,M%d,S%d..%d,B%d..%d,NM", r.Radius, r.States, middle, r.SMin, r.SMax, r.BMin, r.BMax)
 }
 
-// mutateGrayScott nudges the feed or kill rate of a Gray-Scott rule by 0.001
-// to 0.003: patterns change a lot within a few thousandths.
+// mutateGrayScott nudges the feed or the kill rate of a Gray-Scott rule.
 func mutateGrayScott(rng *rand.Rand, rule string) string {
 	r, err := ParseGrayScott(rule)
 	if err != nil {
 		return rule
 	}
-	nudge := func(v float64) float64 {
-		v += float64(1+rng.Intn(3)) / 1000 * float64(1-2*rng.Intn(2))
+	// Up to 0.012 on feed, 0.004 on kill: patterns change regime about as
+	// fast along feed as along a third of that on kill.
+	nudge := func(v float64, steps int) float64 {
+		v += float64(1+rng.Intn(steps)) / 1000 * float64(1-2*rng.Intn(2))
 		return math.Round(min(max(v, 0), 0.1)*10000) / 10000
 	}
 	if rng.Intn(2) == 0 {
-		r.F = nudge(r.F)
+		r.F = nudge(r.F, 12)
 	} else {
-		r.K = nudge(r.K)
+		r.K = nudge(r.K, 4)
 	}
 	return "F" + strconv.FormatFloat(r.F, 'f', -1, 64) + ",K" + strconv.FormatFloat(r.K, 'f', -1, 64)
 }

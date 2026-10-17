@@ -76,6 +76,13 @@ reste à lancer les binaires à la main sur Linux et Windows.
   d'intérêt le plus souvent.
 - Muter pondère les nombres de voisins selon leur fréquence : changer 7 ou 8 ne
   change presque jamais rien.
+- Les mutants se ressemblaient trop avec 2 à 4 changements et un seuil de
+  différence de 0.3 (`minLook`) : désormais 2 à 6 changements et 0.5, à la même
+  vitesse (moins d'une demi-seconde par clic). Les pas de Gray-Scott étaient
+  bien trop petits (0.001 à 0.003) : désormais jusqu'à 0.012 sur feed et 0.004
+  sur kill, le plus sensible. Passer de B/S à Generations un changement sur six
+  rendait presque tous les mutants de Life Generations, car les changements
+  s'additionnent : un sur douze.
 
 ## Page web et MCP
 

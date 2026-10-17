@@ -4,6 +4,8 @@
 
 ### Changed
 
+- **Mutate** is a big button next to **? RANDOM**.
+- **Mutate** goes further: more changes per mutant, bigger Gray-Scott steps, and B/S rules sometimes turn into Generations.
 - Release notes explain how to run the unsigned binaries on macOS, Windows and Linux.
 
 ## 0.5.0 (2026-10-17)
