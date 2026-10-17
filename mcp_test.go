@@ -16,11 +16,12 @@ import (
 // and a bad option that comes back as a tool error, not a protocol one.
 func TestMCP(t *testing.T) {
 	out := filepath.Join(t.TempDir(), "a.gif")
+	outArg, _ := json.Marshal("-o=" + out) // escapes Windows backslashes
 	in := strings.Join([]string{
 		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}`,
 		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
 		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`,
-		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"render","arguments":{"args":["-w=30","-h=20","-gens=5","-at=3:palette=candy","-o=` + out + `"]}}}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"render","arguments":{"args":["-w=30","-h=20","-gens=5","-at=3:palette=candy",` + string(outArg) + `]}}}`,
 		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"render","arguments":{"args":["-rule=nope"]}}}`,
 	}, "\n")
 	var buf bytes.Buffer
