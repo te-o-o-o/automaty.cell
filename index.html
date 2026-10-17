@@ -99,7 +99,10 @@
   input[type=range] { padding: 0; accent-color: var(--highlight); }
   button { cursor: pointer; }
   button:hover { border-color: var(--primary); }
-  #surprise {
+  /* The two big buttons: RANDOM, and Mutate in the highlight colour. */
+  .actions { display: flex; gap: 10px; }
+  .actions button {
+    flex: 1;
     padding: 10px;
     font-weight: 600;
     font-size: 15px;
@@ -107,8 +110,9 @@
     color: var(--primary-text);
     border-color: var(--primary);
   }
-  #surprise:hover { filter: brightness(1.1); }
-  #surprise:disabled { opacity: 0.6; cursor: wait; }
+  #mutate { background: var(--highlight); border-color: var(--highlight); text-transform: uppercase; }
+  .actions button:hover { filter: brightness(1.1); }
+  .actions button:disabled { opacity: 0.6; cursor: wait; }
   .row { display: flex; gap: 6px; }
   .row > :first-child { flex: 1; }
   .modes { display: flex; flex-wrap: wrap; gap: 4px 14px; }
@@ -197,7 +201,8 @@
   #warning strong,
   #warning button,
   .powers span { font-family: var(--pixel); font-size: 9px; font-weight: 400; text-transform: uppercase; line-height: 1.6; }
-  #surprise { font-family: var(--pixel); font-size: 12px; font-weight: 400; box-shadow: 4px 4px 0 var(--highlight); }
+  .actions button { font-family: var(--pixel); font-size: 12px; font-weight: 400; box-shadow: 4px 4px 0 var(--highlight); }
+  #mutate { box-shadow: 4px 4px 0 var(--primary); }
   #cmd code { font: var(--font); color: var(--highlight); }
   label input,
   label select { font-size: 18px; }
@@ -239,7 +244,10 @@
 
 <main>
 <form id="form" autocomplete="off">
-  <button type="button" id="surprise" title="{{.T.randomTitle}}">? RANDOM</button>
+  <div class="actions">
+    <button type="button" id="surprise" title="{{.T.randomTitle}}">? RANDOM</button>
+    <button type="button" id="mutate" data-mode="rule" title="{{.T.mutateTitle}}">~ {{.T.mutate}}</button>
+  </div>
   <fieldset>
     <legend>{{.T.automaton}}</legend>
     <div class="modes wide">
@@ -255,7 +263,7 @@
       </select>
     </label>
     <label class="wide" data-mode="rule">{{.T.rule}}
-      <span class="row"><input name="rule" value="B3/S23"><button type="button" id="mutate" title="{{.T.mutateTitle}}">{{.T.mutate}}</button></span>
+      <input name="rule" value="B3/S23">
     </label>
 
     <label class="wide" data-mode="cyclic">{{.T.preset}}
@@ -579,6 +587,7 @@ $('link').addEventListener('click', () => navigator.clipboard.writeText(location
 $('surprise').addEventListener('click', surprise);
 // Mutate: a few neighbour counts of the rule changed, kept lively by the server.
 $('mutate').addEventListener('click', async () => {
+  $('mutate').disabled = true;
   $('status').textContent = T.jsSearching;
   try {
     const res = await fetch('/mutate?' + query(options(), false));
@@ -590,6 +599,8 @@ $('mutate').addEventListener('click', async () => {
     $('error').hidden = false;
     $('error').textContent = err.message;
     $('status').textContent = '';
+  } finally {
+    $('mutate').disabled = false;
   }
 });
 $('mask-clear').addEventListener('click', () => { $('mask').value = ''; changed(); });
