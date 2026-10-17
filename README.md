@@ -70,7 +70,8 @@ its opaque ones, for a cut-out logo), ready to map onto a façade or a logo.
 ## What it does
 
 - **Rules**: any B/S rule (Game of Life and co, in Golly's notation), Generations,
-  Larger than Life over big neighbourhoods, and cyclic automata. 21 named presets
+  Larger than Life over big neighbourhoods, cyclic automata, and Gray-Scott
+  reaction-diffusion for corals, spots and fingerprints. 26 named presets
   (`-list-rules`).
 - **Starts**: random or Perlin noise islands, mirror, rotation, glide and tiling
   symmetries, shapes (disc, ring, spiral…), methuselahs, or an image mask to map
