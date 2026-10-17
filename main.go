@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"hash/maphash"
 	"image"
 	"image/color"
 	"image/gif"
@@ -25,7 +26,7 @@ type options struct {
 	w, h, scale, gens         int
 	seed                      int64
 	symmetry, shape, at       string
-	pingpong                  bool
+	pingpong, stop            bool
 	density, noise            float64
 	rule                      string
 	wrap                      bool
@@ -59,6 +60,7 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.BoolVar(&o.wrap, "wrap", true, "toroidal edges; -wrap=false makes cells beyond the edge dead")
 	fs.IntVar(&o.delay, "delay", 5, "GIF frame delay in 1/100 s")
 	fs.BoolVar(&o.pingpong, "pingpong", false, "GIF or ZIP: play forward then backward, a loop without a jump")
+	fs.BoolVar(&o.stop, "stop", false, "GIF or ZIP: end when a generation repeats an earlier one (frozen or looping), once -at has made its last change")
 	fs.StringVar(&o.mask, "mask", "", "PNG or JPEG image: cells only live in its light areas (or opaque ones, if it has transparency)")
 	fs.BoolVar(&o.cyclic, "cyclic", false, "run a cyclic cellular automaton instead of -rule")
 	fs.IntVar(&o.states, "states", 14, "cyclic: number of states (2-256)")
@@ -110,11 +112,15 @@ func (o *options) generate(w io.Writer) error {
 	if err != nil {
 		return err
 	}
+	repeated := o.repeats()
 	if o.gif {
 		// ponytail: all frames held in memory (W*H*scale² bytes each), stream if it gets too big
 		frames := []*image.Paletted{Render(g, o.scale, pal())}
+		repeated(0, g)
 		for i := 1; i < o.gens; i++ {
-			g = step(g)
+			if g = step(g); repeated(i, g) {
+				break
+			}
 			frames = append(frames, Render(g, o.scale, pal()))
 		}
 		if o.pingpong {
@@ -133,6 +139,9 @@ func (o *options) generate(w io.Writer) error {
 		for i := 0; i < o.gens; i++ {
 			if i > 0 {
 				g = step(g)
+			}
+			if repeated(i, g) {
+				break
 			}
 			var buf bytes.Buffer
 			if err := png.Encode(&buf, Render(g, o.scale, pal())); err != nil {
@@ -160,6 +169,33 @@ func (o *options) generate(w io.Writer) error {
 		g = step(g)
 	}
 	return png.Encode(w, Render(g, o.scale, pal()))
+}
+
+// repeats returns, for -stop, a check that generation gen's grid repeats an
+// earlier one: from there on the animation would only repeat itself. A
+// repeat before -at's last change doesn't count, as that change may wake it.
+// Gray-Scott grids only show V rounded: a repeat means it looks still.
+func (o *options) repeats() func(gen int, g *Grid) bool {
+	if !o.stop {
+		return func(int, *Grid) bool { return false }
+	}
+	keys, _ := o.keyframes() // setup has already checked them
+	last := 0
+	if len(keys) > 0 {
+		last = keys[len(keys)-1].gen
+	}
+	seed, seen := maphash.MakeSeed(), map[uint64]bool{}
+	return func(gen int, g *Grid) bool {
+		if gen < last {
+			return false
+		}
+		h := maphash.Bytes(seed, g.Cells)
+		if seen[h] {
+			return true
+		}
+		seen[h] = true
+		return false
+	}
 }
 
 // resolvePreset returns the rule a preset name stands for, or rule itself.

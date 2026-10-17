@@ -94,6 +94,7 @@ func surprise(rng *rand.Rand, base options) options {
 			o.shape = shapes[1+rng.Intn(len(shapes)-1)]
 		}
 		o.pingpong = rng.Intn(3) == 0
+		o.stop = true // no tail of frozen frames
 		o.gif = true
 		o.gens = 60 + rng.Intn(91)
 		o.delay = []int{3, 5, 8, 12}[rng.Intn(4)]

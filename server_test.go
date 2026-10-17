@@ -189,6 +189,27 @@ func TestPingPong(t *testing.T) {
 	}
 }
 
+// -stop ends the GIF on the first repeated generation, but not before -at's
+// last change. Under B/S everything dies at once: generation 2 repeats 1.
+func TestStop(t *testing.T) {
+	for _, tc := range []struct {
+		at   string
+		want int
+	}{{"", 2}, {"10:palette=candy", 11}} {
+		var o options
+		newFlagSet(&o).Parse([]string{"-w=10", "-h=10", "-gens=50", "-rule=B/S", "-stop", "-at=" + tc.at})
+		o.gif = true
+		var buf bytes.Buffer
+		if err := o.generate(&buf); err != nil {
+			t.Fatal(err)
+		}
+		g, err := gif.DecodeAll(&buf)
+		if err != nil || len(g.Image) != tc.want {
+			t.Errorf("-at=%q: %d frames, want %d (%v)", tc.at, len(g.Image), tc.want, err)
+		}
+	}
+}
+
 // maskPNG returns a w×h PNG whose left half is "inside": white on black, or
 // opaque on transparent.
 func maskPNG(w, h int, transparent bool) []byte {

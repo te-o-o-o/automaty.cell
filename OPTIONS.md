@@ -38,6 +38,7 @@ name; the command line below the image shows the ones you changed.
 - `-o` — the output file: `.png` for the last generation, `.gif` for an animation, `.zip` for one PNG per generation.
 - `-delay` — how long each GIF frame shows, in hundredths of a second.
 - `-pingpong` — plays the animation forward then backward, for a loop without a jump.
+- `-stop` — ends the animation as soon as a generation repeats an earlier one (frozen or looping), but never before the last `-at` change.
 
 ## The colours
 
