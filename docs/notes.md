@@ -85,6 +85,18 @@ binaries there by hand is still left to do.
 - The MCP server is written by hand (tools only). Take the official Go SDK if
   prompts, resources or the HTTP transport are ever needed.
 
+## README images
+
+- They are rendered at the size they are shown (about 240 to 300 cells,
+  `-scale=1`), then `gifsicle -O3`. Ageing cells change colour every
+  generation, so nearly every pixel changes in every frame: fewer colours
+  barely help. Blobs, spiral and mitosis-reef also keep one frame in two with
+  the delay doubled (`gifsicle -O3 in.gif '#0' '#2' … --delay N`, plus
+  `--colors 32` for mitosis-reef), which halves them; swirls and spaceship were
+  kept whole after comparing both versions. The page screenshot is a JPEG.
+- GitHub plays videos only when uploaded through its web editor, not from the
+  repository: GIFs it is.
+
 ## Traps
 
 - **Restarting the server**: kill only the process listening on the port,

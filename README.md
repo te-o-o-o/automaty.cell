@@ -62,6 +62,9 @@ a creation. Same engine as the CLI, with limits for online use (grids up to
 
 ## The four at the top
 
+To load faster, the Globe, Generations and Gray-Scott GIFs above keep one
+frame in two; these commands make the full versions.
+
 ```
 # Larger than Life (Globe), mirrored into four
 ./automaty.cell -rule globe -symmetry 4 -density 0.5 -w 300 -h 300 -scale 1 -gens 120 -delay 6 -palette candy -o blobs.gif

@@ -63,6 +63,9 @@ jusqu'à environ 80 Mo). La page existe en anglais et en français.
 
 ## Les quatre du haut
 
+Pour charger plus vite, les GIF Globe, Generations et Gray-Scott du haut ne
+gardent qu'une image sur deux ; ces commandes donnent les versions complètes.
+
 ```
 # Larger than Life (Globe), en miroir par quatre
 ./automaty.cell -rule globe -symmetry 4 -density 0.5 -w 300 -h 300 -scale 1 -gens 120 -delay 6 -palette candy -o blobs.gif

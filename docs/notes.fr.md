@@ -94,6 +94,19 @@ reste à lancer les binaires à la main sur Linux et Windows.
 - Le serveur MCP est écrit à la main (outils seulement). Prendre le SDK Go
   officiel si un jour il faut les prompts, les ressources ou le transport HTTP.
 
+## Images du README
+
+- Elles sont générées à leur taille d'affichage (environ 240 à 300 cellules,
+  `-scale=1`), puis passées dans `gifsicle -O3`. Les cellules qui vieillissent
+  changent de couleur à chaque génération, donc presque chaque pixel change à
+  chaque image : moins de couleurs n'aide presque pas. Blobs, spiral et
+  mitosis-reef ne gardent en plus qu'une image sur deux avec un délai doublé
+  (`gifsicle -O3 in.gif '#0' '#2' … --delay N`, plus `--colors 32` pour
+  mitosis-reef), ce qui les divise par deux ; swirls et spaceship sont restés
+  complets après comparaison des deux versions. La capture de la page est un JPEG.
+- GitHub ne lit les vidéos que si elles sont envoyées par son éditeur web, pas
+  depuis le dépôt : ce sera des GIF.
+
 ## Pièges
 
 - **Relancer le serveur** : ne tuer que le processus qui écoute sur le port,
