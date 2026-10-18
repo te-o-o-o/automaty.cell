@@ -46,7 +46,7 @@ go install github.com/te-o-o-o/automaty.cell@latest
 
 <table align="center">
   <tr>
-    <td align="center"><img src="docs/web.png" width="720" alt="La page web dans son thème Bonbon : les boutons RANDOM et MUTATE au-dessus des réglages, une dentelle Larger than Life lilas au milieu, sa ligne de commande en dessous"><br><sub>La page web (<code>-serve</code>), thème Bonbon</sub></td>
+    <td align="center"><img src="docs/web.jpg" width="720" alt="La page web dans son thème Bonbon : les boutons RANDOM et MUTATE au-dessus des réglages, une dentelle Larger than Life lilas au milieu, sa ligne de commande en dessous"><br><sub>La page web (<code>-serve</code>), thème Bonbon</sub></td>
   </tr>
 </table>
 
@@ -71,7 +71,7 @@ jusqu'à environ 80 Mo). La page existe en anglais et en français.
 ./automaty.cell -cyclic -states 4 -threshold 3 -neighborhood moore -w 150 -h 150 -gens 120 -delay 6 -colors ff3b3b,ff3ee0,f7f33c,3ed4f7 -o swirls.gif
 
 # Une règle Generations partie d'une spirale, symétrie 8, en boucle aller-retour
-./automaty.cell -rule=24/234/6 -seed=195067 -symmetry=8 -shape=spiral -density=0.47 -gens=60 -delay=2 -pingpong=true -w=280 -h=280 -colors='d2f2c0,1a6c7f,00e9f2,ff00fe' -o spiral.gif
+./automaty.cell -rule=24/234/6 -seed=195067 -symmetry=8 -shape=spiral -density=0.47 -gens=60 -delay=2 -pingpong=true -w=280 -h=280 -scale=1 -colors='d2f2c0,1a6c7f,00e9f2,ff00fe' -o spiral.gif
 
 # Réaction-diffusion de Gray-Scott : des taches qui se divisent, puis deviennent corail à la génération 90
 ./automaty.cell -rule=mitosis -symmetry=8 -w=240 -h=240 -scale=1 -gens=180 -delay=4 -palette=berry -at=90:rule=reef -o mitosis-reef.gif
@@ -91,7 +91,7 @@ façade ou un logo.
 </table>
 
 ```
-./automaty.cell -rule=03468/23/6 -palette=candy -seed=477752 -symmetry=2 -density=0.57 -delay=6 -pingpong=true -w=280 -h=280 -mask=spaceship.png -o spaceship.gif
+./automaty.cell -rule=03468/23/6 -palette=candy -seed=477752 -symmetry=2 -density=0.57 -delay=6 -pingpong=true -w=280 -h=280 -scale=1 -mask=spaceship.png -o spaceship.gif
 ```
 
 ## Fonctionnalités

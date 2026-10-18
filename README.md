@@ -46,7 +46,7 @@ go install github.com/te-o-o-o/automaty.cell@latest
 
 <table align="center">
   <tr>
-    <td align="center"><img src="docs/web.png" width="720" alt="The web page in its Candy theme: the RANDOM and MUTATE buttons above the settings, a lilac Larger than Life lace in the middle, its command line below"><br><sub>The web page (<code>-serve</code>), in its Candy theme</sub></td>
+    <td align="center"><img src="docs/web.jpg" width="720" alt="The web page in its Candy theme: the RANDOM and MUTATE buttons above the settings, a lilac Larger than Life lace in the middle, its command line below"><br><sub>The web page (<code>-serve</code>), in its Candy theme</sub></td>
   </tr>
 </table>
 
@@ -70,7 +70,7 @@ a creation. Same engine as the CLI, with limits for online use (grids up to
 ./automaty.cell -cyclic -states 4 -threshold 3 -neighborhood moore -w 150 -h 150 -gens 120 -delay 6 -colors ff3b3b,ff3ee0,f7f33c,3ed4f7 -o swirls.gif
 
 # A Generations rule grown from a spiral, mirrored eightfold, looping back and forth
-./automaty.cell -rule=24/234/6 -seed=195067 -symmetry=8 -shape=spiral -density=0.47 -gens=60 -delay=2 -pingpong=true -w=280 -h=280 -colors='d2f2c0,1a6c7f,00e9f2,ff00fe' -o spiral.gif
+./automaty.cell -rule=24/234/6 -seed=195067 -symmetry=8 -shape=spiral -density=0.47 -gens=60 -delay=2 -pingpong=true -w=280 -h=280 -scale=1 -colors='d2f2c0,1a6c7f,00e9f2,ff00fe' -o spiral.gif
 
 # Gray-Scott reaction-diffusion: eightfold spots dividing, then turning to coral at generation 90
 ./automaty.cell -rule=mitosis -symmetry=8 -w=240 -h=240 -scale=1 -gens=180 -delay=4 -palette=berry -at=90:rule=reef -o mitosis-reef.gif
@@ -89,7 +89,7 @@ its opaque ones, for a cut-out logo), ready to map onto a façade or a logo.
 </table>
 
 ```
-./automaty.cell -rule=03468/23/6 -palette=candy -seed=477752 -symmetry=2 -density=0.57 -delay=6 -pingpong=true -w=280 -h=280 -mask=spaceship.png -o spaceship.gif
+./automaty.cell -rule=03468/23/6 -palette=candy -seed=477752 -symmetry=2 -density=0.57 -delay=6 -pingpong=true -w=280 -h=280 -scale=1 -mask=spaceship.png -o spaceship.gif
 ```
 
 ## What it does
