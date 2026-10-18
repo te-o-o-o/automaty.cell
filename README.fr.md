@@ -9,10 +9,10 @@
 <p align="center"><sub>v0.5.0 · Go 1.22+ · zéro dépendance · MIT</sub></p>
 
 <p align="center">
-  <a href="#les-quatre-ci-dessus">Exemples</a> ·
+  <a href="#page-web">Page web</a> ·
+  <a href="#les-quatre-du-haut">Exemples</a> ·
   <a href="#sur-ton-image">Sur une image</a> ·
   <a href="#fonctionnalités">Fonctionnalités</a> ·
-  <a href="#page-web">Page web</a> ·
   <a href="#agents-mcp">Agents</a> ·
   <a href="OPTIONS.md">Options</a> ·
   <a href="README.md">English</a>
@@ -42,7 +42,26 @@ n'est pas signé), ou avec Go :
 go install github.com/te-o-o-o/automaty.cell@latest
 ```
 
-## Les quatre ci-dessus
+## Page web
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/web.png" width="720" alt="La page web dans son thème Bonbon : les boutons RANDOM et MUTATE au-dessus des réglages, une dentelle Larger than Life lilas au milieu, sa ligne de commande en dessous"><br><sub>La page web (<code>-serve</code>), thème Bonbon</sub></td>
+  </tr>
+</table>
+
+```
+./automaty.cell -serve :8080
+```
+
+Chaque option a son champ et l'image se recalcule à chaque changement, avec sa
+ligne de commande en dessous. **? RANDOM** tire des réglages vivants,
+**Muter** explore les voisines d'une règle qui te plaît, et le lien de la page
+garde ses réglages, pour partager une création. Même moteur que la ligne de
+commande, avec des limites pour un usage en ligne (grilles jusqu'à 500×500, GIF
+jusqu'à environ 80 Mo). La page existe en anglais et en français.
+
+## Les quatre du haut
 
 ```
 # Larger than Life (Globe), en miroir par quatre
@@ -93,19 +112,6 @@ façade ou un logo.
 
 Chaque option en une phrase : [OPTIONS.md](OPTIONS.md) (en anglais) ; valeurs
 par défaut : `./automaty.cell -h`.
-
-## Page web
-
-```
-./automaty.cell -serve :8080
-```
-
-Chaque option a son champ et l'image se recalcule à chaque changement, avec sa
-ligne de commande en dessous. **? RANDOM** tire des réglages vivants,
-**Muter** explore les voisines d'une règle qui te plaît, et le lien de la page
-garde ses réglages, pour partager une création. Même moteur que la ligne de
-commande, avec des limites pour un usage en ligne (grilles jusqu'à 500×500, GIF
-jusqu'à environ 80 Mo). La page existe en anglais et en français.
 
 ## Agents (MCP)
 

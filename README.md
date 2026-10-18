@@ -9,10 +9,10 @@
 <p align="center"><sub>v0.5.0 · Go 1.22+ · zero dependencies · MIT</sub></p>
 
 <p align="center">
-  <a href="#the-four-above">Examples</a> ·
+  <a href="#web-page">Web page</a> ·
+  <a href="#the-four-at-the-top">Examples</a> ·
   <a href="#on-your-own-image">On an image</a> ·
   <a href="#what-it-does">Features</a> ·
-  <a href="#web-page">Web page</a> ·
   <a href="#agents-mcp">Agents</a> ·
   <a href="OPTIONS.md">Options</a> ·
   <a href="README.fr.md">Français</a>
@@ -42,7 +42,25 @@ signed), or with Go:
 go install github.com/te-o-o-o/automaty.cell@latest
 ```
 
-## The four above
+## Web page
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/web.png" width="720" alt="The web page in its Candy theme: the RANDOM and MUTATE buttons above the settings, a lilac Larger than Life lace in the middle, its command line below"><br><sub>The web page (<code>-serve</code>), in its Candy theme</sub></td>
+  </tr>
+</table>
+
+```
+./automaty.cell -serve :8080
+```
+
+Every option has its field and the image re-renders on every change, with its
+command line below. **? RANDOM** picks lively settings, **Mutate** explores the
+neighbours of a rule you like, and the page's link holds its settings, to share
+a creation. Same engine as the CLI, with limits for online use (grids up to
+500×500, GIFs up to about 80 MB). The page comes in English and French.
+
+## The four at the top
 
 ```
 # Larger than Life (Globe), mirrored into four
@@ -91,18 +109,6 @@ its opaque ones, for a cut-out logo), ready to map onto a façade or a logo.
   23 palettes, or your own colours.
 
 Every option in one sentence: [OPTIONS.md](OPTIONS.md); defaults: `./automaty.cell -h`.
-
-## Web page
-
-```
-./automaty.cell -serve :8080
-```
-
-Every option has its field and the image re-renders on every change, with its
-command line below. **? RANDOM** picks lively settings, **Mutate** explores the
-neighbours of a rule you like, and the page's link holds its settings, to share
-a creation. Same engine as the CLI, with limits for online use (grids up to
-500×500, GIFs up to about 80 MB). The page comes in English and French.
 
 ## Agents (MCP)
 
