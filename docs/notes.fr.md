@@ -105,7 +105,7 @@ reste à lancer les binaires à la main sur Linux et Windows.
 - Un rendu wasm ne s'interrompt pas depuis Go : un rendu périmé termine son
   worker. La page compile le module une fois et le passe à chaque nouveau
   worker, donc ça coûte peu.
-- Le `.wasm` fait environ 5,9 Mo, 1,6 Mo en gzip (Go 1.27, `-ldflags=-s`).
+- Le `.wasm` fait environ 2,9 Mo, 1,2 Mo en gzip tel que Pages le sert (la CI compile avec le Go 1.22 de go.mod) ; avec Go 1.27 il fait 5,9 Mo, 1,6 Mo en gzip.
 - Le serveur MCP est écrit à la main (outils seulement). Prendre le SDK Go
   officiel si un jour il faut les prompts, les ressources ou le transport HTTP.
 

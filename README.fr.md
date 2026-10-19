@@ -63,7 +63,7 @@ commande, avec des limites pour un usage en ligne (grilles jusqu'à 500×500, GI
 jusqu'à environ 80 Mo). La page existe en anglais et en français.
 
 Sans rien installer : [la même page tourne dans ton navigateur](https://te-o-o-o.github.io/automaty.cell/?lang=fr),
-avec le moteur compilé en WebAssembly (environ 1,6 Mo à télécharger, une fois).
+avec le moteur compilé en WebAssembly (environ 1,2 Mo à télécharger, une fois).
 
 ## Les quatre du haut
 

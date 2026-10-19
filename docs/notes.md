@@ -95,7 +95,7 @@ binaries there by hand is still left to do.
 - A wasm render can't be interrupted from Go: a stale render terminates its
   worker. The module is compiled once by the page and handed to each new
   worker, so that is cheap.
-- The `.wasm` is about 5.9 MB, 1.6 MB gzipped (Go 1.27, `-ldflags=-s`).
+- The `.wasm` is about 2.9 MB, 1.2 MB gzipped as Pages serves it (CI builds with go.mod's Go 1.22); Go 1.27 makes it 5.9 MB, 1.6 MB gzipped.
 - The MCP server is written by hand (tools only). Take the official Go SDK if
   prompts, resources or the HTTP transport are ever needed.
 

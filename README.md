@@ -62,7 +62,7 @@ a creation. Same engine as the CLI, with limits for online use (grids up to
 500×500, GIFs up to about 80 MB). The page comes in English and French.
 
 No install needed: [the same page runs in your browser](https://te-o-o-o.github.io/automaty.cell/),
-the engine compiled to WebAssembly (about 1.6 MB to download, once).
+the engine compiled to WebAssembly (about 1.2 MB to download, once).
 
 ## The four at the top
 
