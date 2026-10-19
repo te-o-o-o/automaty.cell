@@ -1,3 +1,5 @@
+//go:build !js
+
 package main
 
 import (
@@ -147,8 +149,8 @@ func renderFile(args []string) (path string, sheet []byte, verdict string, err e
 	if fs.NArg() > 0 {
 		return "", nil, "", fmt.Errorf("unexpected %q: want -name=value items", fs.Arg(0))
 	}
-	if o.serve != "" || o.listRules || o.mcp {
-		return "", nil, "", errors.New("-serve, -list-rules and -mcp are CLI only")
+	if o.serve != "" || o.listRules || o.mcp || o.site != "" {
+		return "", nil, "", errors.New("-serve, -list-rules, -mcp and -site are CLI only")
 	}
 	if o.out == "out.png" { // the default: don't write every render over the last one
 		o.out = fmt.Sprintf("automaty-%d.png", time.Now().UnixNano())

@@ -4,3 +4,4 @@
 *.zip
 !docs/*.gif
 !docs/*.png
+/site/

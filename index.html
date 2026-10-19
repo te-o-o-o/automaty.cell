@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>automaty.cell</title>
+{{if .Static}}<script>
+// The static page (-site) has one file per language and sets its theme here:
+// a shared link's ?lang= and ?theme= work as they do with -serve.
+{
+  const p = new URLSearchParams(location.search);
+  if ((p.get('lang') === 'fr') !== {{eq .Lang "fr"}}) location.replace((p.get('lang') === 'fr' ? 'fr.html' : './') + location.search);
+  if (p.get('theme') === 'arcade') document.documentElement.dataset.theme = 'arcade';
+}
+</script>{{end}}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <style>
@@ -406,6 +415,8 @@ const lang = new URLSearchParams(location.search).get('lang');
 const T = {{.T}}; // the page's words, for the few the script writes itself
 // Cyclic settings known to keep moving ("neighborhood,radius,states,threshold").
 const LIVELY = new Set({{.Lively}});
+// The static page runs the engine itself (automaty.wasm), -serve asks the server.
+const STATIC = {{.Static}};
 
 const mode = () => form.mode.value;
 const format = () => $('format').value;
@@ -493,14 +504,70 @@ function applyParams(entries) {
 }
 
 let controller, timer;
-// request asks the server for a render; with a mask image, as an upload.
-function request(params, signal) {
-  const mask = $('mask').files[0];
-  if (!mask) return fetch('/render?' + params, { signal });
+// call asks the engine for a render, a surprise or a mutant; renders take
+// the mask image, as an upload.
+function call(path, params, signal) {
+  const mask = path === 'render' && $('mask').files[0];
+  if (STATIC) return work(path, params.toString(), mask, signal);
+  if (!mask) return fetch(`/${path}?` + params, { signal });
   const body = new FormData();
   body.append('mask', mask);
-  return fetch('/render?' + params, { method: 'POST', body, signal });
+  return fetch(`/${path}?` + params, { method: 'POST', body, signal });
 }
+{{if .Static}}
+// The engine, fetched and compiled once; the status counts what has arrived.
+const engine = (async () => {
+  const res = await fetch('automaty.wasm');
+  if (!res.ok) throw new Error(`automaty.wasm: ${res.status} ${res.statusText}`);
+  const reader = res.body.getReader();
+  const chunks = [];
+  for (let got = 0; ;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    got += value.length;
+    $('status').textContent = T.jsLoading.replace('%s', (got / 1e6).toFixed(1));
+  }
+  $('status').textContent = T.jsRendering;
+  return WebAssembly.compile(await new Blob(chunks).arrayBuffer());
+})();
+
+// work runs one request in a Web Worker (worker.js) and wraps its reply as a
+// Response, the way -serve would answer. A render can't be stopped from
+// inside, so aborting one terminates its worker; idle workers are reused.
+const idle = [];
+async function work(op, query, mask, signal) {
+  const module = await engine;
+  const buf = mask ? await mask.arrayBuffer() : null;
+  signal?.throwIfAborted();
+  let worker = idle.pop();
+  if (!worker) {
+    worker = new Worker('worker.js');
+    worker.postMessage({ module });
+  }
+  const out = await new Promise((resolve, reject) => {
+    const abort = () => {
+      worker.terminate();
+      reject(new DOMException('render cancelled', 'AbortError'));
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+    worker.onmessage = e => {
+      signal?.removeEventListener('abort', abort);
+      resolve(e.data);
+    };
+    worker.onerror = e => {
+      signal?.removeEventListener('abort', abort);
+      worker.terminate();
+      reject(new Error(e.message || 'worker.js failed'));
+    };
+    worker.postMessage({ op, query, mask: buf }, buf ? [buf] : []);
+  });
+  if (out.dead) worker.terminate();
+  else idle.push(worker);
+  if (out.error) return new Response(out.error, { status: 400 });
+  return new Response(out.body, { headers: { 'Content-Type': out.type } });
+}
+{{end}}
 
 async function render() {
   clearTimeout(timer);
@@ -515,7 +582,7 @@ async function render() {
   controller = new AbortController();
   $('status').textContent = T.jsRendering;
   try {
-    const res = await request(query(opts, false), controller.signal);
+    const res = await call('render', query(opts, false), controller.signal);
     if (!res.ok) throw new Error(await res.text());
     const url = URL.createObjectURL(await res.blob());
     URL.revokeObjectURL($('img').src);
@@ -538,7 +605,7 @@ async function surprise() {
   $('surprise').disabled = true;
   $('status').textContent = T.jsSearching;
   try {
-    const res = await fetch('/surprise?' + query(options(), false));
+    const res = await call('surprise', query(options(), false));
     if (!res.ok) throw new Error(await res.text());
     applyParams(Object.entries(await res.json()));
     updateVisibility();
@@ -590,7 +657,7 @@ $('mutate').addEventListener('click', async () => {
   $('mutate').disabled = true;
   $('status').textContent = T.jsSearching;
   try {
-    const res = await fetch('/mutate?' + query(options(), false));
+    const res = await call('mutate', query(options(), false));
     if (!res.ok) throw new Error(await res.text());
     form.rule.value = (await res.json()).rule;
     $('preset').value = '';
@@ -610,7 +677,7 @@ $('zip').addEventListener('click', async () => {
   params.set('format', 'zip');
   $('status').textContent = T.jsRendering;
   try {
-    const res = await request(params);
+    const res = await call('render', params);
     if (!res.ok) throw new Error(await res.text());
     const a = document.createElement('a');
     a.href = URL.createObjectURL(await res.blob());
@@ -662,6 +729,7 @@ $('warning-ok').addEventListener('click', () => {
   } catch {}
 });
 
+if (STATIC) $('theme').value = document.documentElement.dataset.theme;
 setColors(['#1a0033', '#ff3ea5', '#ffcc00']);
 applyParams(new URLSearchParams(location.search));
 updateVisibility();

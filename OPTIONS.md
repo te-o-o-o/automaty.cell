@@ -48,6 +48,7 @@ name; the command line below the image shows the ones you changed.
 ## The web page
 
 - `-serve` — serves the web page on an address such as `:8080` instead of writing a file.
+- `-site` — writes the static web page (`index.html`, `fr.html`, `worker.js`) into a directory, to run with the WebAssembly build of the engine, as on GitHub Pages.
 - `-mcp` — serves the Model Context Protocol on stdin/stdout, so an agent can render what you describe.
 - **? RANDOM** — picks random settings that give a lively, animated result.
 - **Mutate** — changes the rule 2 to 6 times (a digit, sometimes B/S into Generations; for Larger than Life its radius, ranges or middle cell; for Gray-Scott its feed or kill rate), keeping only lively mutants that look clearly different.

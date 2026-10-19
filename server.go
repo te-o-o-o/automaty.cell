@@ -1,34 +1,28 @@
+//go:build !js
+
 package main
 
 import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"errors"
-	"flag"
-	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 )
 
 //go:embed index.html
 var indexHTML string
 
-var indexTmpl = template.Must(template.New("index").Parse(indexHTML))
+//go:embed worker.js
+var workerJS []byte
 
-// Limits for the web server only: a public page must not let one request
-// take the whole machine. The CLI has none.
-const (
-	maxSide   = 500         // cells per side
-	maxScale  = 8           // pixels per cell
-	maxGens   = 2000        // generations
-	maxWork   = 111_000_000 // cells × generations: about 1 s at worst, whatever the rule
-	maxPixels = 80_000_000  // GIF: pixels over all frames, held in memory (about 80 MB)
-)
+var indexTmpl = template.Must(template.New("index").Parse(indexHTML))
 
 // busy lets at most 2 renders run at once; other requests wait their turn.
 var busy = make(chan struct{}, 2)
@@ -46,6 +40,20 @@ func serve(addr string) error {
 	return srv.ListenAndServe()
 }
 
+// page writes the page in a theme (bonbon or arcade) and a language (en or
+// fr). static makes it run the WebAssembly engine instead of calling the server.
+func page(w io.Writer, theme, lang string, static bool) error {
+	type palette struct{ Name, CSS string }
+	var palettes []palette
+	for _, name := range paletteNames() {
+		palettes = append(palettes, palette{name, gradients[name].css()})
+	}
+	return indexTmpl.Execute(w, map[string]any{
+		"Presets": Presets, "Palettes": palettes, "MaxSide": maxSide, "MaxScale": maxScale, "MaxGens": maxGens,
+		"Theme": theme, "Lang": lang, "T": texts[lang], "Lively": livelyKeys(), "Static": static,
+	})
+}
+
 // indexHandler serves the page in the theme named by ?theme= (bonbon, the
 // default, or arcade) and the language named by ?lang= (en, the default, or fr).
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -57,25 +65,33 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if lang != "fr" {
 		lang = "en"
 	}
-	type palette struct{ Name, CSS string }
-	var palettes []palette
-	for _, name := range paletteNames() {
-		palettes = append(palettes, palette{name, gradients[name].css()})
-	}
-	err := indexTmpl.Execute(w, map[string]any{
-		"Presets": Presets, "Palettes": palettes, "MaxSide": maxSide, "MaxScale": maxScale, "MaxGens": maxGens,
-		"Theme": theme, "Lang": lang, "T": texts[lang], "Lively": livelyKeys(),
-	})
-	if err != nil {
+	if err := page(w, theme, lang, false); err != nil {
 		log.Print(err)
 	}
 }
 
-// handleRender reads the same options as the CLI from the query string
-// (?rule=B3/S23&w=100 is -rule=B3/S23 -w=100), plus format=png|gif, and
-// replies with the image.
+// writeSite writes the static page, one file per language, and its worker
+// into dir. The WebAssembly engine and Go's wasm_exec.js go next to them
+// (see .github/workflows/pages.yml); the theme is set in the browser.
+func writeSite(dir string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	for file, lang := range map[string]string{"index.html": "en", "fr.html": "fr"} {
+		var buf bytes.Buffer
+		if err := page(&buf, "bonbon", lang, true); err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(dir, file), buf.Bytes(), 0o644); err != nil {
+			return err
+		}
+	}
+	return os.WriteFile(filepath.Join(dir, "worker.js"), workerJS, 0o644)
+}
+
+// handleRender replies with the image the query asks for (see parseQuery).
 func handleRender(w http.ResponseWriter, r *http.Request) {
-	o, err := parseQuery(r)
+	o, err := parseQuery(r.URL.Query())
 	if err == nil && r.Method == http.MethodPost { // a mask image, as multipart "mask"
 		r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 		var f io.ReadCloser
@@ -103,75 +119,17 @@ func handleRender(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	switch {
-	case o.gif:
-		w.Header().Set("Content-Type", "image/gif")
-	case o.zip:
-		w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Type", o.contentType())
+	if o.zip {
 		w.Header().Set("Content-Disposition", `attachment; filename="automaty.cell.zip"`)
-	default:
-		w.Header().Set("Content-Type", "image/png")
 	}
 	w.Write(buf.Bytes())
-}
-
-func parseQuery(r *http.Request) (*options, error) {
-	q := r.URL.Query()
-	var o options
-	switch q.Get("format") {
-	case "", "png":
-	case "gif":
-		o.gif = true
-	case "zip":
-		o.zip = true
-	default:
-		return nil, fmt.Errorf("unknown format %q (want png, gif or zip)", q.Get("format"))
-	}
-	q.Del("format")
-
-	var args []string
-	for k, vs := range q {
-		// mask is a path: the server must never read its own files for a visitor.
-		if k == "o" || k == "serve" || k == "list-rules" || k == "mcp" || k == "mask" {
-			return nil, fmt.Errorf("option %q is CLI only", k)
-		}
-		for _, v := range vs {
-			args = append(args, "-"+k+"="+v)
-		}
-	}
-	fs := newFlagSet(&o)
-	fs.SetOutput(io.Discard)
-	if err := fs.Parse(args); err != nil {
-		return nil, err
-	}
-	return &o, nil
-}
-
-func checkLimits(o *options) error {
-	work := o.w * o.h * o.gens
-	if !o.cyclic && IsGrayScott(resolvePreset(o.rule)) {
-		// ponytail: -at switching to Gray-Scott mid-run isn't weighed; weigh each keyframe if it ever matters
-		work *= 6 // 10 reaction-diffusion steps per generation: about 6× a rule
-	}
-	switch {
-	case o.w > maxSide || o.h > maxSide:
-		return fmt.Errorf("grid is at most %d×%d cells here (use the CLI for more)", maxSide, maxSide)
-	case o.scale > maxScale:
-		return fmt.Errorf("scale is at most %d here", maxScale)
-	case o.gens > maxGens:
-		return fmt.Errorf("at most %d generations here", maxGens)
-	case work > maxWork:
-		return errors.New("too much work for the web page: lower the grid size or generations (or use the CLI)")
-	case (o.gif || o.zip) && o.w*o.h*o.scale*o.scale*o.gens > maxPixels:
-		return errors.New("GIF too large for the web page: lower the grid size, scale or generations (or use the CLI)")
-	}
-	return nil
 }
 
 // handleSurprise replies with random options that make an interesting
 // animated automaton (see surprise), as JSON {flag: value}.
 func handleSurprise(w http.ResponseWriter, r *http.Request) {
-	o, err := parseQuery(r)
+	o, err := parseQuery(r.URL.Query())
 	if err == nil {
 		err = checkLimits(o)
 	}
@@ -187,33 +145,15 @@ func handleSurprise(w http.ResponseWriter, r *http.Request) {
 	}
 	s := surprise(rand.New(rand.NewSource(time.Now().UnixNano())), *o)
 	w.Header().Set("Content-Type", "application/json")
-	// Every flag, as the page's fields hold them, but those the page has no
-	// field for, and the mask it keeps.
-	reply := map[string]string{"format": "gif"}
-	cur := s
-	fs := newFlagSet(&cur) // resets cur to the defaults…
-	cur = s                // …so put the settings back
-	fs.VisitAll(func(f *flag.Flag) { reply[f.Name] = f.Value.String() })
-	for _, k := range []string{"o", "serve", "list-rules", "mcp", "mask"} {
-		delete(reply, k)
-	}
-	if s.colors != "" { // the page switches to a custom gradient
-		delete(reply, "palette")
-	} else {
-		delete(reply, "colors")
-	}
-	json.NewEncoder(w).Encode(reply)
+	json.NewEncoder(w).Encode(surpriseReply(s))
 }
 
 // handleMutate replies with a lively mutant of the page's rule that looks
 // different (see mutateLively), as JSON {"rule": …}.
 func handleMutate(w http.ResponseWriter, r *http.Request) {
-	o, err := parseQuery(r)
-	if err == nil && o.cyclic {
-		err = errors.New("mutate works on rules, not the cyclic mode")
-	}
+	o, err := parseQuery(r.URL.Query())
 	if err == nil {
-		_, err = o.automaton()
+		err = checkMutate(o)
 	}
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

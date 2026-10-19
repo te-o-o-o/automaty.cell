@@ -14,7 +14,6 @@ import (
 	"io"
 	"math"
 	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -38,7 +37,7 @@ type options struct {
 	gif, zip                  bool   // GIF or ZIP of PNG frames instead of one PNG
 	mask                      string // CLI: image file whose light (or opaque) areas stay alive
 	maskData                  []byte // web: the same image, uploaded
-	out, serve                string
+	out, serve, site          string
 	listRules, mcp            bool
 }
 
@@ -70,39 +69,9 @@ func newFlagSet(o *options) *flag.FlagSet {
 	fs.StringVar(&o.palette, "palette", "age", "colour gradient: "+strings.Join(paletteNames(), ", "))
 	fs.StringVar(&o.colors, "colors", "", "custom gradient of 2 to 8 colours, RRGGBB,RRGGBB,… (replaces -palette)")
 	fs.StringVar(&o.serve, "serve", "", "serve the web page on this address (e.g. :8080) instead of writing a file")
+	fs.StringVar(&o.site, "site", "", "write the static web page (index.html, fr.html, worker.js) into this directory, for the WebAssembly build")
 	fs.BoolVar(&o.mcp, "mcp", false, "serve the Model Context Protocol on stdin/stdout, for an agent to render with")
 	return fs
-}
-
-func main() {
-	var o options
-	fs := newFlagSet(&o)
-	if err := fs.Parse(os.Args[1:]); err != nil {
-		os.Exit(2) // the flag package already printed the error and usage
-	}
-
-	switch {
-	case o.listRules:
-		for _, p := range Presets {
-			fmt.Printf("%-18s %s\n", p.Name, p.Rule)
-		}
-	case o.serve != "":
-		fail(1, serve(o.serve))
-	case o.mcp:
-		if err := mcp(os.Stdin, os.Stdout); err != nil {
-			fail(1, err)
-		}
-	default:
-		o.gif = strings.EqualFold(filepath.Ext(o.out), ".gif")
-		o.zip = strings.EqualFold(filepath.Ext(o.out), ".zip")
-		var buf bytes.Buffer
-		if err := o.generate(&buf); err != nil {
-			fail(2, err)
-		}
-		if err := os.WriteFile(o.out, buf.Bytes(), 0o644); err != nil {
-			fail(1, err)
-		}
-	}
 }
 
 // generate runs the automaton and writes a GIF of every generation, or a PNG
@@ -512,9 +481,4 @@ func swapping(into func(g, next *Grid)) func(*Grid) *Grid {
 		g, spare = spare, g
 		return g
 	}
-}
-
-func fail(code int, err error) {
-	fmt.Fprintln(os.Stderr, "automaty.cell:", err)
-	os.Exit(code)
 }

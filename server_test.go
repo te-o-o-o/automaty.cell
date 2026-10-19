@@ -1,3 +1,5 @@
+//go:build !js
+
 package main
 
 import (
@@ -13,6 +15,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -365,5 +369,30 @@ func TestMutateToGenerations(t *testing.T) {
 	}
 	if gens == 0 {
 		t.Error("no B/S rule turned into Generations")
+	}
+}
+
+// The static page comes in both languages, runs the engine itself, and its
+// script includes the worker it calls.
+func TestWriteSite(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeSite(dir); err != nil {
+		t.Fatal(err)
+	}
+	for file, want := range map[string]string{
+		"index.html": `<html lang="en"`,
+		"fr.html":    `<html lang="fr"`,
+		"worker.js":  "automaty[data.op]",
+	} {
+		b, err := os.ReadFile(filepath.Join(dir, file))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(b), want) {
+			t.Errorf("%s: no %q", file, want)
+		}
+		if file != "worker.js" && !strings.Contains(strings.Join(strings.Fields(string(b)), " "), "const STATIC = true ;") {
+			t.Errorf("%s: not the static page", file)
+		}
 	}
 }
