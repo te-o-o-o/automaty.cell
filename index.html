@@ -12,7 +12,9 @@
   if ((p.get('lang') === 'fr') !== {{eq .Lang "fr"}}) location.replace((p.get('lang') === 'fr' ? 'fr.html' : './') + location.search);
   if (p.get('theme') === 'arcade') document.documentElement.dataset.theme = 'arcade';
 }
-</script>{{end}}
+</script>
+<!-- Starts the engine's download now, not once the fonts' stylesheet lets the script run. -->
+<link rel="preload" href="automaty.wasm" as="fetch" crossorigin>{{end}}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
 <style>
