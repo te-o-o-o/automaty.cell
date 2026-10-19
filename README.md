@@ -9,6 +9,7 @@
 <p align="center"><sub>v0.5.0 · Go 1.22+ · zero dependencies · MIT</sub></p>
 
 <p align="center">
+  <a href="https://te-o-o-o.github.io/automaty.cell/"><b>Try it in your browser</b></a> ·
   <a href="#web-page">Web page</a> ·
   <a href="#the-four-at-the-top">Examples</a> ·
   <a href="#on-your-own-image">On an image</a> ·
@@ -59,6 +60,9 @@ command line below. **? RANDOM** picks lively settings, **Mutate** explores the
 neighbours of a rule you like, and the page's link holds its settings, to share
 a creation. Same engine as the CLI, with limits for online use (grids up to
 500×500, GIFs up to about 80 MB). The page comes in English and French.
+
+No install needed: [the same page runs in your browser](https://te-o-o-o.github.io/automaty.cell/),
+the engine compiled to WebAssembly (about 1.6 MB to download, once).
 
 ## The four at the top
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Added
+
+- The web page runs in your browser, no install: [te-o-o-o.github.io/automaty.cell](https://te-o-o-o.github.io/automaty.cell/). The engine is compiled to WebAssembly and renders in a background worker; shared links work there as they do with `-serve`.
+- `-site` writes that static page into a directory.
+
 ### Changed
 
 - **Mutate** is a big button next to **? RANDOM**.

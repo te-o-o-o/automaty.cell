@@ -10,6 +10,7 @@ Decisions, dead ends and traps, and what is verified on which OS.
 | `go vet` and `go test` | CI (`macos-14`) and by hand | CI (`ubuntu-22.04`) | CI (`windows-latest`) |
 | CLI renders (PNG, GIF, ZIP) | PNG and GIF by hand, ZIP in tests | not run | not run |
 | Web page (`-serve`) | by hand (requests and the page) | not run | not run |
+| Static page (`-site` + WebAssembly) | by hand in a browser (render, RANDOM, Mutate, cancel, limits, ZIP, mask, languages) | not run | not run |
 | MCP (`-mcp`) | tests only | tests only | tests only |
 | Release binaries | built by CI, not recorded as run | built by CI only | built by CI only |
 
@@ -82,6 +83,19 @@ binaries there by hand is still left to do.
   cells × generations, and the pixels of all GIF frames held in memory.
 - `-mask` is a path on the CLI only: the web page uploads the image, so the
   server never reads its own files for a visitor.
+- The static page (GitHub Pages) is the same template, rendered once per
+  language by `-site` (`index.html`, `fr.html`); `?lang=fr` on `index.html`
+  redirects to `fr.html` and the theme is set in the browser, so links shared
+  from `-serve` work there unchanged. Its script swaps `fetch` for a Web Worker
+  running `automaty.wasm` (`wasm.go`, `worker.js`) and wraps the reply in a
+  `Response`, so the rest of the page can't tell the difference.
+- Build tags: `server.go`, `mcp.go`, `cli.go` (`main`) and their tests are
+  `!js`; `wasm.go` is `js && wasm`. What both builds share (limits, query
+  parsing, replies) is in `web.go`.
+- A wasm render can't be interrupted from Go: a stale render terminates its
+  worker. The module is compiled once by the page and handed to each new
+  worker, so that is cheap.
+- The `.wasm` is about 5.9 MB, 1.6 MB gzipped (Go 1.27, `-ldflags=-s`).
 - The MCP server is written by hand (tools only). Take the official Go SDK if
   prompts, resources or the HTTP transport are ever needed.
 
@@ -98,6 +112,12 @@ binaries there by hand is still left to do.
   repository: GIFs it is.
 
 ## Traps
+
+- **`wasm_exec.js` must match the Go that built the `.wasm`**: copy it from
+  `$(go env GOROOT)/lib/wasm` (Go 1.24+) or `misc/wasm` (older), never keep
+  an old copy.
+- **`go vet` for wasm** includes the tests: a test of a `!js` file needs the
+  tag too (`GOOS=js GOARCH=wasm go vet .`).
 
 - **Restarting the server**: kill only the process listening on the port,
   `kill $(lsof -nP -t -iTCP:8080 -sTCP:LISTEN)`. A bare `lsof -t -i :8080`

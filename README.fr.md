@@ -9,6 +9,7 @@
 <p align="center"><sub>v0.5.0 · Go 1.22+ · zéro dépendance · MIT</sub></p>
 
 <p align="center">
+  <a href="https://te-o-o-o.github.io/automaty.cell/"><b>Essayer dans le navigateur</b></a> ·
   <a href="#page-web">Page web</a> ·
   <a href="#les-quatre-du-haut">Exemples</a> ·
   <a href="#sur-ton-image">Sur une image</a> ·
@@ -60,6 +61,9 @@ ligne de commande en dessous. **? RANDOM** tire des réglages vivants,
 garde ses réglages, pour partager une création. Même moteur que la ligne de
 commande, avec des limites pour un usage en ligne (grilles jusqu'à 500×500, GIF
 jusqu'à environ 80 Mo). La page existe en anglais et en français.
+
+Sans rien installer : [la même page tourne dans ton navigateur](https://te-o-o-o.github.io/automaty.cell/?lang=fr),
+avec le moteur compilé en WebAssembly (environ 1,6 Mo à télécharger, une fois).
 
 ## Les quatre du haut
 

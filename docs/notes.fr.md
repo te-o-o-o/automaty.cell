@@ -10,6 +10,7 @@ Décisions, impasses et pièges, et ce qui est vérifié sur quel OS.
 | `go vet` et `go test` | CI (`macos-14`) et à la main | CI (`ubuntu-22.04`) | CI (`windows-latest`) |
 | Rendus en CLI (PNG, GIF, ZIP) | PNG et GIF à la main, ZIP dans les tests | pas lancé | pas lancé |
 | Page web (`-serve`) | à la main (requêtes et page) | pas lancé | pas lancé |
+| Page statique (`-site` + WebAssembly) | à la main dans un navigateur (rendu, RANDOM, Muter, annulation, limites, ZIP, masque, langues) | pas lancée | pas lancée |
 | MCP (`-mcp`) | tests seulement | tests seulement | tests seulement |
 | Binaires de release | compilés par la CI, pas noté comme lancés | compilés par la CI seulement | compilés par la CI seulement |
 
@@ -91,6 +92,20 @@ reste à lancer les binaires à la main sur Linux et Windows.
   gardées en mémoire.
 - `-mask` est un chemin en CLI seulement : la page web envoie l'image, pour que
   le serveur ne lise jamais ses propres fichiers pour un visiteur.
+- La page statique (GitHub Pages) est le même template, rendu une fois par
+  langue par `-site` (`index.html`, `fr.html`) ; `?lang=fr` sur `index.html`
+  redirige vers `fr.html` et le thème est posé dans le navigateur, donc les
+  liens partagés depuis `-serve` y marchent tels quels. Son script remplace
+  `fetch` par un Web Worker qui fait tourner `automaty.wasm` (`wasm.go`,
+  `worker.js`) et emballe la réponse dans une `Response` : le reste de la page
+  ne voit pas la différence.
+- Build tags : `server.go`, `mcp.go`, `cli.go` (`main`) et leurs tests sont
+  `!js` ; `wasm.go` est `js && wasm`. Ce que les deux builds partagent
+  (limites, lecture de la requête, réponses) est dans `web.go`.
+- Un rendu wasm ne s'interrompt pas depuis Go : un rendu périmé termine son
+  worker. La page compile le module une fois et le passe à chaque nouveau
+  worker, donc ça coûte peu.
+- Le `.wasm` fait environ 5,9 Mo, 1,6 Mo en gzip (Go 1.27, `-ldflags=-s`).
 - Le serveur MCP est écrit à la main (outils seulement). Prendre le SDK Go
   officiel si un jour il faut les prompts, les ressources ou le transport HTTP.
 
@@ -108,6 +123,12 @@ reste à lancer les binaires à la main sur Linux et Windows.
   depuis le dépôt : ce sera des GIF.
 
 ## Pièges
+
+- **`wasm_exec.js` doit venir du Go qui a construit le `.wasm`** : le copier
+  depuis `$(go env GOROOT)/lib/wasm` (Go 1.24+) ou `misc/wasm` (avant), ne
+  jamais garder une vieille copie.
+- **`go vet` pour wasm** inclut les tests : le test d'un fichier `!js` doit
+  porter le tag aussi (`GOOS=js GOARCH=wasm go vet .`).
 
 - **Relancer le serveur** : ne tuer que le processus qui écoute sur le port,
   `kill $(lsof -nP -t -iTCP:8080 -sTCP:LISTEN)`. Un simple `lsof -t -i :8080`
