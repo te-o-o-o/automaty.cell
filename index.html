@@ -78,8 +78,15 @@
     gap: 16px;
     align-items: start;
   }
-  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
   form { display: flex; flex-direction: column; gap: 12px; }
+  /* Mobile: one column, the render right under RANDOM and Mutate. The form
+     steps aside so its blocks and the render can be ordered together. */
+  @media (max-width: 800px) {
+    main { grid-template-columns: 1fr; gap: 12px; }
+    form { display: contents; }
+    .actions { order: -2; }
+    #view { order: -1; }
+  }
   fieldset {
     margin: 0;
     padding: 10px 12px 12px;
